@@ -43,13 +43,13 @@
 	</section>
 	<section name="Maven2ProjectWizardArchifactPage">
 		<list key="package">
-			<item value="com.example.Util"/>
+			<item value="com.example.naming_server"/>
 		</list>
 		<list key="groupId">
 			<item value="com.example"/>
 		</list>
 		<list key="artifactId">
-			<item value="Util"/>
+			<item value="naming-server"/>
 		</list>
 		<list key="projectNameTemplate">
 			<item value="[artifactId]"/>

@@ -52,12 +52,24 @@
             <artifactId>jakarta.persistence-api</artifactId>
             <version>3.1.0</version>
         </dependency>
-        <dependency>
-        	<groupId>com.example</groupId>
-        	<artifactId>currency-exchange</artifactId>
-        	<version>0.0.1-SNAPSHOT</version>
-        </dependency>
+        <!-- Spring Cloud OpenFeign -->
+		<dependency>
+    		<groupId>org.springframework.cloud</groupId>
+    		<artifactId>spring-cloud-starter-openfeign</artifactId>
+		</dependency>
 	</dependencies>
+	<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>2023.0.3</version> <!-- stabilna verzija za Spring Boot 3.x -->
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+
 
 	<build>
 		<plugins>
