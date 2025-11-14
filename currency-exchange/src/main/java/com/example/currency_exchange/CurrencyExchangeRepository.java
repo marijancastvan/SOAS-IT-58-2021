@@ -15,5 +15,5 @@ public interface CurrencyExchangeRepository extends JpaRepository<CurrencyExchan
 			SELECT DISTINCT currency_to AS currency from currency_exchange
 			"""
 			,nativeQuery = true)
-	List<String> findAllDistinctCurrencis();
+	List<String> findAllDistinctCurrencies();
 }

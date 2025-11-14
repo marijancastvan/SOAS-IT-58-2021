@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.HttpClientErrorException;
 
 @ControllerAdvice
@@ -46,6 +47,7 @@ public class GlobalExceptionHandler {
 				.body(new ExceptionModel(ex.getMessage(), "You can exchange up to 300 units of a single currency",
 						HttpStatus.BAD_REQUEST));
 	}
+	
 	
 //	public String fineTuneMessage(String message) {
 //		String[] partsOfTheMessage = message.split("\"");
