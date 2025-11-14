@@ -28,8 +28,9 @@ public class UserModel implements Serializable{
 	private String password;
 	
 	
-	@Column(nullable = false, columnDefinition="VARCHAR(10) CHECK(role IN ('ADMIN','USER'))")
+	@Column(nullable = false, columnDefinition="VARCHAR(10) CHECK(role IN ('OWNER','ADMIN','USER'))")
 	private String role;
+	
 	
 	public UserModel() {
 	

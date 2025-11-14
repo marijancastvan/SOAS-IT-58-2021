@@ -28,4 +28,7 @@ public interface UsersService {
 	@PutMapping("/users")
 	ResponseEntity<?> updateUser(@RequestBody UserDto dto);
 
+	@PostMapping("/users/newOwner")
+	ResponseEntity<?> createOwner(@RequestBody UserDto dto);
+
 }
