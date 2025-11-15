@@ -1,0 +1,25 @@
+# IDE fajlovi
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Maven i build folderi
+target/
+out/
+
+# OS fajlovi
+.DS_Store
+Thumbs.db
+
+# Logs i temp
+*.log
+*.tmp
+
+# H2 baza
+*.mv.db
+*.trace.db
+
+# Spring Boot DevTools
+spring-dev-tools.properties

@@ -6,33 +6,35 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import api.dtos.UserDto;
+import api.proxies.BankAccountProxy;
 import api.services.UsersService;
 
-@RestController
-@RequestMapping("/api")  
+@Service 
 public class UserServiceImpl implements UsersService {
 
 	@Autowired
 	private UserRepository repo;
 	
-	@PostMapping("/owner")
-	public ResponseEntity<?> createOwnerEndpoint(@RequestBody UserDto dto) {
-	    return createOwner(dto);
-	}
+	@Autowired
+	private BankAccountProxy bankAccountProxy;
 
-	
-	private void checkOwnerAccess(UserDto currentUser) {
-	    if (!"OWNER".equalsIgnoreCase(currentUser.getRole())) {
-	        throw new RuntimeException("Access denied: Only OWNER can perform this action");
-	    }
+	public UserDto convertModelToDto(UserModel model)
+	{
+		return new UserDto(model.getEmail(),model.getPassword(),model.getRole());
+		
 	}
-
+	public UserModel convertDtoToModel(UserDto dto)
+	{
+		return new UserModel(dto.getEmail(),dto.getPassword(),dto.getRole());
+		
+	}
 	
 	@Override
 	public List<UserDto> getUsers() {
@@ -84,7 +86,14 @@ public class UserServiceImpl implements UsersService {
 		if(repo.findByEmail(dto.getEmail()) == null) {
 			dto.setRole("USER");
 			UserModel model= convertDtoToModel(dto);
-			return ResponseEntity.status(HttpStatus.CREATED).body(repo.save(model));
+			//return ResponseEntity.status(HttpStatus.CREATED).body(repo.save(model));
+			UserModel saved = repo.save(model);
+			try {
+			    bankAccountProxy.createForUser(saved.getEmail());
+			} catch (Exception e) {
+			    // log, eventual cleanup or retry; za početak samo loguj
+			}
+			return ResponseEntity.status(HttpStatus.CREATED).body(saved);
 		}else {
 			return ResponseEntity.status(HttpStatus.CONFLICT).body("User with passed email already exist");
 			
@@ -103,15 +112,27 @@ public class UserServiceImpl implements UsersService {
 		}
 	}
 	
-	public UserDto convertModelToDto(UserModel model)
-	{
-		return new UserDto(model.getEmail(),model.getPassword(),model.getRole());
-		
+	@Override
+	public ResponseEntity<?> deleteUser(String email) {
+
+	    UserModel model = repo.findByEmail(email);
+	    if(model == null) {
+	        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+	                .body("User not found");
+	    }
+
+	    repo.delete(model);
+
+	    try {
+	        bankAccountProxy.deleteByEmail(email);
+	    } catch (Exception e) {
+	       // log; ne crashuje
+	    }
+
+	    return ResponseEntity.ok("User and bank account deleted");
 	}
-	public UserModel convertDtoToModel(UserDto dto)
-	{
-		return new UserModel(dto.getEmail(),dto.getPassword(),dto.getRole());
-		
-	}
+
+	
+	
 	
 }
