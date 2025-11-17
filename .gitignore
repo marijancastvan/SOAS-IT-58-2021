@@ -1,1 +1,19 @@
-/.metadata/
+# Eclipse / Spring Tools metadata
+.metadata/
+.apt_generated/
+.factorypath
+.classpath
+.project
+.settings/
+
+# IntelliJ
+.idea/
+*.iml
+
+# Build folders
+target/
+bin/
+
+# OS files
+.DS_Store
+Thumbs.db

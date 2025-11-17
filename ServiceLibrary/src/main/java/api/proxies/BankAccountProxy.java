@@ -1,24 +1,22 @@
 package api.proxies;
 
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
-import api.dtos.UserDto;
+import api.dtos.BankAccountDto;
 
 @FeignClient(name = "bank-account", url = "http://localhost:8200", path = "/api/bank-accounts")
 public interface BankAccountProxy {
-	
-	@GetMapping("/api/users/email")
-    UserDto getUserByEmail(@RequestParam String email);
-	
+
+	 @GetMapping("/email")
+	 BankAccountDto getByEmail(@RequestParam String email);
+
     @PostMapping("/createForUser")
     void createForUser(@RequestParam String email);
-    
-    @DeleteMapping("/bankaccounts/{email}")
-    void deleteByEmail(@PathVariable String email);
+   
+    @PostMapping("/update")
+    void updateWallet(@RequestParam String email, @RequestBody BankAccountDto dto);
 
+    @DeleteMapping("/email")
+    void deleteByEmail(@RequestParam String email);
 }

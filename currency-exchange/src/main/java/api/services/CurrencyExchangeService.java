@@ -1,13 +1,7 @@
 package api.services;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import api.dtos.CurrencyExchangeDto;
 
-@Service
 public interface CurrencyExchangeService {
-
-	@GetMapping("/currency-exchange")
-	ResponseEntity<?> getCurrencyExchange(@RequestParam(defaultValue = "EUR") String from, @RequestParam(defaultValue = "RSD") String to);
+    CurrencyExchangeDto getCurrencyExchange(String from, String to);
 }

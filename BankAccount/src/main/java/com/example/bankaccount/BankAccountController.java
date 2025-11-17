@@ -2,6 +2,9 @@ package com.example.bankaccount;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import api.dtos.BankAccountDto;
+import api.dtos.UserDto;
+
 import java.util.List;
 
 @RestController
@@ -24,7 +27,7 @@ public class BankAccountController {
         return ResponseEntity.ok(service.getByEmail(email));
     }
 
-    // create account for given user email (validates user via Feign)
+    // Create account for given user email (validates user via Feign)
     @PostMapping("/createForUser")
     public ResponseEntity<?> createForUser(@RequestParam String email) {
         return ResponseEntity.status(201).body(service.createForUser(email));
@@ -39,5 +42,17 @@ public class BankAccountController {
     public ResponseEntity<?> delete(@RequestParam String email) {
         service.deleteByEmail(email);
         return ResponseEntity.noContent().build();
+    }
+
+   
+    // Optional role-based access check
+    private void checkAccess(String email, UserDto user) {
+        if (user.getRole().equalsIgnoreCase("OWNER")) {
+            throw new RuntimeException("OWNER not allowed");
+        }
+        if (user.getRole().equalsIgnoreCase("USER") &&
+            !user.getEmail().equalsIgnoreCase(email)) {
+            throw new RuntimeException("Users can access only their own account");
+        }
     }
 }
