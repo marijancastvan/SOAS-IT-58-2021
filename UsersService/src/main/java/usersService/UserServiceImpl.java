@@ -7,10 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import api.dtos.UserDto;
 import api.proxies.BankAccountProxy;
@@ -48,11 +44,18 @@ public class UserServiceImpl implements UsersService {
 
 	@Override
 	public UserDto getUserByEmail(String email) {
-		return convertModelToDto(repo.findByEmail(email));
+	    UserModel model = repo.findByEmail(email);
+	    if (model == null) {
+	        return null; 
+	    }
+	    return convertModelToDto(model);
 	}
 
 	@Override
 	public ResponseEntity<?> createAdmin(UserDto dto) {
+		if (dto.getEmail() == null || !dto.getEmail().contains("@")) {
+		    return ResponseEntity.badRequest().body("Invalid email");
+		}
 		if(repo.findByEmail(dto.getEmail()) == null) {
 			dto.setRole("ADMIN");
 			UserModel model= convertDtoToModel(dto);
@@ -65,6 +68,9 @@ public class UserServiceImpl implements UsersService {
 	
 	@Override
 	public ResponseEntity<?> createOwner(UserDto dto) {
+		if (dto.getEmail() == null || !dto.getEmail().contains("@")) {
+		    return ResponseEntity.badRequest().body("Invalid email");
+		}
 	    // Proveri da li već postoji OWNER
 	    boolean ownerExists = repo.findAll().stream()
 	            .anyMatch(u -> u.getRole().equalsIgnoreCase("OWNER"));
@@ -83,6 +89,9 @@ public class UserServiceImpl implements UsersService {
 
 	@Override
 	public ResponseEntity<?> createUser(UserDto dto) {
+		if (dto.getEmail() == null || !dto.getEmail().contains("@")) {
+		    return ResponseEntity.badRequest().body("Invalid email");
+		}
 		if(repo.findByEmail(dto.getEmail()) == null) {
 			dto.setRole("USER");
 			UserModel model= convertDtoToModel(dto);
@@ -102,13 +111,23 @@ public class UserServiceImpl implements UsersService {
 
 	@Override
 	public ResponseEntity<?> updateUser(UserDto dto) {
+		if (dto.getEmail() == null || !dto.getEmail().contains("@")) {
+		    return ResponseEntity.badRequest().body("Invalid email");
+		}
+		// SIMPLE ACCESS CHECK 
+		if (dto.getRole().equalsIgnoreCase("USER")) {
+		    // USER ne sme menjati tuđe naloge
+		    UserModel existing = repo.findByEmail(dto.getEmail());
+		    if (existing != null && !existing.getEmail().equals(dto.getEmail())) {
+		        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("USER cannot modify another user");
+		    }
+		}
 		if(repo.findByEmail(dto.getEmail()) != null) {
 			
 			repo.updateUser(dto.getEmail(), dto.getPassword(), dto.getRole());
 			return ResponseEntity.status(HttpStatus.OK).body(dto);
 		}else {
-			return ResponseEntity.status(HttpStatus.CONFLICT).body("User with passed email already exist");
-			
+			return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");			
 		}
 	}
 	

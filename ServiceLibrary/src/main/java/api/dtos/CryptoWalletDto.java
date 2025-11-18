@@ -3,25 +3,14 @@ package api.dtos;
 import java.math.BigDecimal;
 
 public class CryptoWalletDto {
+
     public String email;
-    public String role; 
-    public BigDecimal btc;
-    public BigDecimal eth;
-    public BigDecimal ada;
+    public String role;
+    public BigDecimal btc = BigDecimal.ZERO;
+    public BigDecimal eth = BigDecimal.ZERO;
+    public BigDecimal ada = BigDecimal.ZERO;
 
-    public CryptoWalletDto() {
-        this.btc = BigDecimal.ZERO;
-        this.eth = BigDecimal.ZERO;
-        this.ada = BigDecimal.ZERO;
-    }
-
-    public CryptoWalletDto(String email) {
-        this.email = email;
-        this.role = role;
-        this.btc = BigDecimal.ZERO;
-        this.eth = BigDecimal.ZERO;
-        this.ada = BigDecimal.ZERO;
-    }
+    public CryptoWalletDto() {}
 
     // Dohvati stanje određene valute
     public BigDecimal getAmount(String currency) {

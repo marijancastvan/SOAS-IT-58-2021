@@ -2,13 +2,13 @@ package com.example.cryptowallet;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import api.dtos.CryptoWalletDto;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/crypto-wallets")
+@RequestMapping("/api/wallet")
 public class CryptoWalletController {
 
     private final CryptoWalletService service;
@@ -17,29 +17,67 @@ public class CryptoWalletController {
         this.service = service;
     }
 
-    @GetMapping
-    public ResponseEntity<List<CryptoWalletModel>> getAll() {
-        return ResponseEntity.ok(service.getAll());
+    // GET all wallets (ADMIN only)
+    @GetMapping("/all")
+    public ResponseEntity<List<CryptoWalletDto>> getAll(@RequestHeader("X-User-Role") String userRole) {
+        return ResponseEntity.ok(service.getAll(userRole));
     }
 
-    @GetMapping("/email")
-    public ResponseEntity<CryptoWalletModel> getByEmail(@RequestParam String email) {
-        return ResponseEntity.ok(service.getByEmail(email));
+    // GET wallet by email
+    @GetMapping("/{email}")
+    public ResponseEntity<CryptoWalletDto> getByEmail(
+            @PathVariable String email,
+            @RequestHeader("X-User-Role") String userRole,
+            @RequestHeader("X-Requester-Email") String requesterEmail) {
+
+        return ResponseEntity.ok(service.getByEmail(email, userRole, requesterEmail));
     }
 
-    @PostMapping("/createForUser")
-    public ResponseEntity<?> createForUser(@RequestParam String email) {
+    // CREATE wallet (ADMIN or system triggered for new USER)
+    @PostMapping("/create")
+    public ResponseEntity<CryptoWalletDto> create(@RequestParam String email) {
         return ResponseEntity.status(201).body(service.createForUser(email));
     }
 
-    @PutMapping("/email")
-    public ResponseEntity<?> update(@RequestParam String email, @RequestBody CryptoWalletDto dto) {
-        return ResponseEntity.ok(service.update(email, dto));
+    // UPDATE wallet
+    @PutMapping("/update/{email}")
+    public ResponseEntity<CryptoWalletDto> update(
+            @PathVariable String email,
+            @RequestBody CryptoWalletDto dto,
+            @RequestHeader("X-User-Role") String userRole,
+            @RequestHeader("X-Requester-Email") String requesterEmail) {
+
+        return ResponseEntity.ok(service.update(email, dto, userRole, requesterEmail));
     }
 
-    @DeleteMapping("/email")
-    public ResponseEntity<?> delete(@RequestParam String email) {
+    // DELETE wallet
+    @DeleteMapping("/{email}")
+    public ResponseEntity<Void> delete(@PathVariable String email) {
         service.deleteByEmail(email);
         return ResponseEntity.noContent().build();
+    }
+
+    // DEPOSIT funds
+    @PostMapping("/deposit")
+    public ResponseEntity<CryptoWalletDto> deposit(
+            @RequestParam String email,
+            @RequestParam String currency,
+            @RequestParam BigDecimal amount,
+            @RequestHeader("X-User-Role") String userRole,
+            @RequestHeader("X-Requester-Email") String requesterEmail) {
+
+        return ResponseEntity.ok(service.deposit(email, currency, amount, userRole, requesterEmail));
+    }
+
+    // WITHDRAW funds
+    @PostMapping("/withdraw")
+    public ResponseEntity<CryptoWalletDto> withdraw(
+            @RequestParam String email,
+            @RequestParam String currency,
+            @RequestParam BigDecimal amount,
+            @RequestHeader("X-User-Role") String userRole,
+            @RequestHeader("X-Requester-Email") String requesterEmail) {
+
+        return ResponseEntity.ok(service.withdraw(email, currency, amount, userRole, requesterEmail));
     }
 }

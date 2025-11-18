@@ -1,8 +1,8 @@
 package com.example.cryptowallet;
 
 import jakarta.persistence.*;
-import java.io.Serializable;
 import java.math.BigDecimal;
+import java.io.Serializable;
 
 @Entity
 @Table(name = "crypto_wallet")
@@ -24,23 +24,14 @@ public class CryptoWalletModel implements Serializable {
     @Column(nullable = false)
     private BigDecimal ada = BigDecimal.ZERO;
 
-    public CryptoWalletModel() {}
-
-    public CryptoWalletModel(String email) {
-        this.email = email;
-    }
-
     // getters & setters
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-
     public BigDecimal getBtc() { return btc; }
     public void setBtc(BigDecimal btc) { this.btc = btc; }
-
     public BigDecimal getEth() { return eth; }
     public void setEth(BigDecimal eth) { this.eth = eth; }
-
     public BigDecimal getAda() { return ada; }
     public void setAda(BigDecimal ada) { this.ada = ada; }
 }
