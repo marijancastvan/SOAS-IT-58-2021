@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import api.dtos.CryptoWalletDto;
 import api.dtos.UserDto;
 import api.proxies.UsersServiceProxy;
+import api.services.CryptoWalletService;
 
 import java.math.BigDecimal;
 import java.util.List;

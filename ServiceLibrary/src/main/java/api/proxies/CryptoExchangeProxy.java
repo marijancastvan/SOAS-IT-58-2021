@@ -9,7 +9,7 @@ import api.dtos.CryptoExchangeDto;
 import java.math.BigDecimal;
 import java.util.List;
 
-@FeignClient(name = "crypto-exchange", url = "http://localhost:8400", path = "/api/exchanges")
+@FeignClient(name = "crypto-exchange", url = "http://localhost:8400", path = "/api/crypto-exchange")
 public interface CryptoExchangeProxy {
 
     // Dohvati kurs između dve valute

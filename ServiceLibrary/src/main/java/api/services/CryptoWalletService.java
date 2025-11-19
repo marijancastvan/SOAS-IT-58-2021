@@ -1,4 +1,4 @@
-package com.example.cryptowallet;
+package api.services;
 
 import api.dtos.CryptoWalletDto;
 import java.math.BigDecimal;

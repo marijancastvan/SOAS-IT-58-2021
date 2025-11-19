@@ -2,8 +2,10 @@ package com.example.cryptoexchange;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
+import java.util.stream.Collectors;
+import api.dtos.CryptoExchangeDto;
+import api.services.CryptoExchangeService;
 
 @Service
 @Transactional
@@ -16,33 +18,47 @@ public class CryptoExchangeServiceImpl implements CryptoExchangeService {
     }
 
     @Override
-    public List<CryptoExchangeModel> getAllExchanges() {
-        return repo.findAll();
+    public List<CryptoExchangeDto> getAllExchanges() {
+        return repo.findAll().stream()
+                   .map(this::toDto)
+                   .collect(Collectors.toList());
     }
 
     @Override
-    public CryptoExchangeModel getExchange(String fromCurrency, String toCurrency) {
+    public CryptoExchangeDto getExchange(String fromCurrency, String toCurrency) {
         return repo.findByFromCurrencyAndToCurrency(fromCurrency, toCurrency)
-                .orElseThrow(() -> new RuntimeException("Exchange not found"));
+                   .map(this::toDto)
+                   .orElseThrow(() -> new RuntimeException("Exchange not found"));
     }
 
     @Override
-    public CryptoExchangeModel createExchange(CryptoExchangeModel model) {
-        return repo.save(model);
+    public CryptoExchangeDto createExchange(CryptoExchangeDto dto) {
+        CryptoExchangeModel model = new CryptoExchangeModel(dto.fromCurrency, dto.toCurrency, dto.rate);
+        return toDto(repo.save(model));
     }
 
     @Override
-    public CryptoExchangeModel updateExchange(Long id, CryptoExchangeModel model) {
+    public CryptoExchangeDto updateExchange(Long id, CryptoExchangeDto dto) {
         CryptoExchangeModel existing = repo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Exchange not found"));
-        existing.setFromCurrency(model.getFromCurrency());
-        existing.setToCurrency(model.getToCurrency());
-        existing.setRate(model.getRate());
-        return repo.save(existing);
+        existing.setFromCurrency(dto.fromCurrency);
+        existing.setToCurrency(dto.toCurrency);
+        existing.setRate(dto.rate);
+        return toDto(repo.save(existing));
     }
 
     @Override
     public void deleteExchange(Long id) {
         repo.deleteById(id);
     }
+
+    private CryptoExchangeDto toDto(CryptoExchangeModel model) {
+        return new CryptoExchangeDto(
+            model.getId(),          
+            model.getFromCurrency(),
+            model.getToCurrency(),
+            model.getRate()
+        );
+    }
+
 }

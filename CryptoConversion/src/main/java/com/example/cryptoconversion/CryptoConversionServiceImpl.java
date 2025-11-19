@@ -7,9 +7,11 @@ import api.dtos.CryptoConversionDto;
 import api.dtos.CryptoConversionResultDto;
 import api.dtos.CryptoWalletDto;
 import api.proxies.CryptoWalletProxy;
+import api.services.CryptoConversionService;
 import api.proxies.CryptoExchangeProxy;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,15 +45,47 @@ public class CryptoConversionServiceImpl implements CryptoConversionService {
             throw new RuntimeException("Insufficient funds");
         }
 
-        // Dohvati kurs razmene
-        BigDecimal rate = exchangeProxy.getExchangeRate(dto.fromCurrency, dto.toCurrency).rate;
+        BigDecimal convertedAmount;
 
-        // Izvrši konverziju
-        BigDecimal convertedAmount = dto.amount.multiply(rate);
+        boolean fromIsCrypto = !isFiat(dto.fromCurrency);
+        boolean toIsCrypto = !isFiat(dto.toCurrency);
+
+        if(fromIsCrypto && toIsCrypto) {
+            // Crypto -> Crypto: koristimo USD kao međukorak
+            String intermediate = "USD";
+            BigDecimal rateToUSD = exchangeProxy.getRate(dto.fromCurrency, intermediate);
+            BigDecimal intermediateAmount = dto.amount.multiply(rateToUSD);
+            BigDecimal rateUSDToTarget = exchangeProxy.getRate(intermediate, dto.toCurrency);
+            convertedAmount = intermediateAmount.multiply(rateUSDToTarget);
+        } else {
+            // Crypto -> Fiat ili Fiat -> Crypto
+            String intermediate = dto.fromCurrency;
+            if(!isFiat(dto.fromCurrency) && !isFiat(dto.toCurrency)) {
+                intermediate = "USD";
+            } else if(isFiat(dto.fromCurrency) && !isFiat(dto.toCurrency)) {
+                // Fiat -> Crypto: ako fiat nije USD/EUR, koristi USD/EUR kao intermediate
+                if(!dto.fromCurrency.equalsIgnoreCase("USD") && !dto.fromCurrency.equalsIgnoreCase("EUR")) {
+                    intermediate = "USD";
+                }
+            } else if(!isFiat(dto.fromCurrency) && isFiat(dto.toCurrency)) {
+                // Crypto -> Fiat: ako fiat nije USD/EUR, koristi USD/EUR kao intermediate
+                if(!dto.toCurrency.equalsIgnoreCase("USD") && !dto.toCurrency.equalsIgnoreCase("EUR")) {
+                    intermediate = "USD";
+                }
+            }
+
+            BigDecimal rateFrom = exchangeProxy.getRate(dto.fromCurrency, intermediate);
+            BigDecimal intermediateAmount = dto.amount.multiply(rateFrom);
+            BigDecimal rateTo = exchangeProxy.getRate(intermediate, dto.toCurrency);
+            convertedAmount = intermediateAmount.multiply(rateTo);
+        }
+
+        // Rounding na 8 decimala za crypto preciznost
+        convertedAmount = convertedAmount.setScale(8, RoundingMode.HALF_UP);
+
+        // Update wallet
         wallet.updateAmount(dto.fromCurrency, fromAmount.subtract(dto.amount));
         wallet.updateAmount(dto.toCurrency, wallet.getAmount(dto.toCurrency).add(convertedAmount));
-
-        // Update wallet-a
         walletProxy.updateWallet(dto.email, wallet);
 
         // Kreiraj poruku
@@ -63,5 +97,13 @@ public class CryptoConversionServiceImpl implements CryptoConversionService {
         walletState.put(dto.toCurrency, wallet.getAmount(dto.toCurrency));
 
         return new CryptoConversionResultDto(message, walletState);
+    }
+
+    private boolean isFiat(String currency) {
+        return currency.equalsIgnoreCase("USD") ||
+               currency.equalsIgnoreCase("EUR") ||
+               currency.equalsIgnoreCase("RSD") ||
+               currency.equalsIgnoreCase("CHF") ||
+               currency.equalsIgnoreCase("GBP");
     }
 }

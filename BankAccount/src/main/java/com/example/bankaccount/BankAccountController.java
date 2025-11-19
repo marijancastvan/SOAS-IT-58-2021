@@ -2,8 +2,10 @@ package com.example.bankaccount;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import api.dtos.BankAccountDto;
 import api.dtos.UserDto;
+import api.services.BankAccountService;
 
 import java.util.List;
 
@@ -18,39 +20,37 @@ public class BankAccountController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BankAccountModel>> getAll() {
+    public ResponseEntity<List<BankAccountDto>> getAll() {
         return ResponseEntity.ok(service.getAll());
     }
 
     @GetMapping("/email")
-    public ResponseEntity<BankAccountModel> getByEmail(@RequestParam String email) {
+    public ResponseEntity<BankAccountDto> getByEmail(@RequestParam String email) {
         return ResponseEntity.ok(service.getByEmail(email));
     }
 
-    // Create account for given user email (validates user via Feign)
     @PostMapping("/createForUser")
-    public ResponseEntity<?> createForUser(@RequestParam String email) {
+    public ResponseEntity<BankAccountDto> createForUser(@RequestParam String email) {
         return ResponseEntity.status(201).body(service.createForUser(email));
     }
 
     @PutMapping("/email")
-    public ResponseEntity<?> update(@RequestParam String email, @RequestBody BankAccountDto dto) {
+    public ResponseEntity<BankAccountDto> update(@RequestParam String email, @RequestBody BankAccountDto dto) {
         return ResponseEntity.ok(service.update(email, dto));
     }
 
     @DeleteMapping("/email")
-    public ResponseEntity<?> delete(@RequestParam String email) {
+    public ResponseEntity<Void> delete(@RequestParam String email) {
         service.deleteByEmail(email);
         return ResponseEntity.noContent().build();
     }
 
-   
     // Optional role-based access check
     private void checkAccess(String email, UserDto user) {
-        if (user.getRole().equalsIgnoreCase("OWNER")) {
+        if ("OWNER".equalsIgnoreCase(user.getRole())) {
             throw new RuntimeException("OWNER not allowed");
         }
-        if (user.getRole().equalsIgnoreCase("USER") &&
+        if ("USER".equalsIgnoreCase(user.getRole()) &&
             !user.getEmail().equalsIgnoreCase(email)) {
             throw new RuntimeException("Users can access only their own account");
         }

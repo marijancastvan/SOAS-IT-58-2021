@@ -1,4 +1,4 @@
-package com.example.tradeservice;
+package api.services;
 
 import api.dtos.TradeRequestDto;
 import api.dtos.TradeResultDto;

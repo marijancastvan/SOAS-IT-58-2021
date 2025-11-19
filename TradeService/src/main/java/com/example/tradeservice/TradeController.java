@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import api.dtos.TradeRequestDto;
 import api.dtos.TradeResultDto;
+import api.services.TradeService;
 
 @RestController
 @RequestMapping("/api/trade")

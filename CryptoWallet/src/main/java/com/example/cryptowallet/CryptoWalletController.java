@@ -3,6 +3,7 @@ package com.example.cryptowallet;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import api.dtos.CryptoWalletDto;
+import api.services.CryptoWalletService;
 
 import java.math.BigDecimal;
 import java.util.List;

@@ -5,6 +5,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import api.dtos.CryptoWalletDto;
 import api.proxies.CryptoWalletProxy;
+import api.services.TradeService;
 import api.proxies.CryptoExchangeProxy;
 import api.proxies.BankAccountProxy;
 import api.dtos.TradeRequestDto;
@@ -36,9 +37,12 @@ public class TradeServiceImpl implements TradeService {
         CryptoWalletDto wallet = walletProxy.getWalletByEmail(dto.email);
         var bankAccount = bankProxy.getByEmail(dto.email);
 
+        if (wallet == null) throw new RuntimeException("Wallet not found for email: " + dto.email);
+        if (bankAccount == null) throw new RuntimeException("BankAccount not found for email: " + dto.email);
+
         // Provera role korisnika
-        String role = wallet.role; // ovo zavisi kako definišeš role u wallet dto
-        if("OWNER".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role)) {
+        String role = wallet.role;
+        if ("OWNER".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role)) {
             throw new RuntimeException("Access denied: only USER role allowed");
         }
 
@@ -47,12 +51,12 @@ public class TradeServiceImpl implements TradeService {
 
         BigDecimal convertedAmount;
 
-        if(fromIsFiat && !toIsFiat) {
+        if (fromIsFiat && !toIsFiat) {
             // Fiat -> Crypto
-            BigDecimal fromBalance = bankProxy.getByEmail(dto.email).getAmount(dto.fromCurrency);
-            if(fromBalance.compareTo(dto.amount) < 0) throw new RuntimeException("Insufficient fiat funds");
+            BigDecimal fromBalance = bankAccount.getAmount(dto.fromCurrency);
+            if (fromBalance.compareTo(dto.amount) < 0) throw new RuntimeException("Insufficient fiat funds");
 
-            // Prvo konvertuj u USD ili EUR ako nije
+            // Intermediate valuta: USD ili EUR
             String intermediate = (dto.fromCurrency.equals("USD") || dto.fromCurrency.equals("EUR")) ? dto.fromCurrency : "USD";
 
             BigDecimal rateToIntermediate = exchangeProxy.getRate(dto.fromCurrency, intermediate);
@@ -62,23 +66,27 @@ public class TradeServiceImpl implements TradeService {
             convertedAmount = intermediateAmount.multiply(cryptoRate);
 
             // Update stanja
+            bankAccount.updateAmount(dto.fromCurrency, fromBalance.subtract(dto.amount));
             bankProxy.updateWallet(dto.email, bankAccount);
+
             wallet.updateAmount(dto.toCurrency, wallet.getAmount(dto.toCurrency).add(convertedAmount));
             walletProxy.updateWallet(dto.email, wallet);
 
-        } else if(!fromIsFiat && toIsFiat) {
+        } else if (!fromIsFiat && toIsFiat) {
             // Crypto -> Fiat
             BigDecimal fromBalance = wallet.getAmount(dto.fromCurrency);
-            if(fromBalance.compareTo(dto.amount) < 0) throw new RuntimeException("Insufficient crypto funds");
+            if (fromBalance.compareTo(dto.amount) < 0) throw new RuntimeException("Insufficient crypto funds");
 
-            // Konvertuj u USD ili EUR ako nije
+            // Intermediate valuta: USD ili EUR
             String intermediate = (dto.toCurrency.equals("USD") || dto.toCurrency.equals("EUR")) ? dto.toCurrency : "USD";
+
             BigDecimal cryptoRate = exchangeProxy.getRate(dto.fromCurrency, intermediate);
             BigDecimal intermediateAmount = dto.amount.multiply(cryptoRate);
 
             BigDecimal fiatRate = exchangeProxy.getRate(intermediate, dto.toCurrency);
             convertedAmount = intermediateAmount.multiply(fiatRate);
 
+            // Update stanja
             wallet.updateAmount(dto.fromCurrency, fromBalance.subtract(dto.amount));
             walletProxy.updateWallet(dto.email, wallet);
 

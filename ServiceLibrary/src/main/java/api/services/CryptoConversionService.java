@@ -1,4 +1,4 @@
-package com.example.cryptoconversion;
+package api.services;
 
 import api.dtos.CryptoConversionDto;
 import api.dtos.CryptoConversionResultDto;
