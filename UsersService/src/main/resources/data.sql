@@ -1,3 +1,3 @@
-insert into user_model(id,email,password,role)
-values(1,'admin@uns.ac.rs', 'password' ,'ADMIN'),
-	   (2, 'user@uns.ac.rs', 'password', 'USER');
+INSERT INTO user_model(email, password, role) VALUES('admin@uns.ac.rs', 'password', 'ADMIN');
+INSERT INTO user_model(email, password, role) VALUES('user@uns.ac.rs', 'password', 'USER');
+INSERT INTO user_model(email, password, role) VALUES('owner@uns.ac.rs', 'password', 'OWNER');

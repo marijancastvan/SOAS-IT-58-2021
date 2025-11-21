@@ -1,4 +1,4 @@
-package com.example.naming_server;
+package com.example.namingserver;
 
 /**
  * Hello world!

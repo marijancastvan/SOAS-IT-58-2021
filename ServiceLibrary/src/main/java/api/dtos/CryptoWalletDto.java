@@ -31,8 +31,9 @@ public class CryptoWalletDto {
         }
     }
 
-    // Dodaj ili oduzmi količinu određene valute
-    public void updateAmount(String currency, BigDecimal delta) {
-        setAmount(currency, getAmount(currency).add(delta));
+    // updateAmount 
+    public void updateAmount(String currency, BigDecimal newValue) {
+        setAmount(currency, newValue);
     }
+
 }

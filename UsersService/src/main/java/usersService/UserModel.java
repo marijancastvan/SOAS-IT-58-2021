@@ -9,16 +9,18 @@ import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.SequenceGenerator;
+import jakarta.persistence.Table;
 
 @Entity
+@Table(name = "user_model")
 public class UserModel implements Serializable{ 
 	
     private static final long serialVersionUID=1L;
 	
-	@Id
-	@GeneratedValue(strategy= GenerationType.SEQUENCE,generator="my_seq")
-	@SequenceGenerator(name="my_seq", sequenceName="my_seq", allocationSize=1, initialValue=3)
-	
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @SequenceGenerator(name="my_seq", sequenceName="my_seq", allocationSize=1)
+
 	private int id;
 	
 	@Column(nullable = false, unique=true)

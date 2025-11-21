@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import api.dtos.CryptoWalletDto;
 import java.util.List;
 
-@FeignClient(name = "crypto-wallet", url = "http://localhost:8300", path = "/api/wallet")
+@FeignClient(name = "crypto-wallet", /*url = "http://localhost:8300",*/ path = "/api/wallet")
 public interface CryptoWalletProxy {
 
     // Dohvati wallet po korisničkom email-u
