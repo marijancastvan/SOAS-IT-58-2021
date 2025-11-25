@@ -1,0 +1,110 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - master  
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      # UsersService
+      - name: Build and push UsersService
+        uses: docker/build-push-action@v5
+        with:
+          context: ./UsersService
+          file: ./UsersService/Dockerfile
+          push: true
+          tags: marijancastvan/users-service:latest
+
+      # Naming Server
+      - name: Build and push Naming Server
+        uses: docker/build-push-action@v5
+        with:
+          context: ./naming-server
+          file: ./naming-server/Dockerfile
+          push: true
+          tags: marijancastvan/naming-server:latest
+
+      # Currency Exchange
+      - name: Build and push Currency Exchange
+        uses: docker/build-push-action@v5
+        with:
+          context: ./currency-exchange
+          file: ./currency-exchange/Dockerfile
+          push: true
+          tags: marijancastvan/currency-exchange:latest
+
+      # Currency Conversion
+      - name: Build and push Currency Conversion
+        uses: docker/build-push-action@v5
+        with:
+          context: ./currency-conversion
+          file: ./currency-conversion/Dockerfile
+          push: true
+          tags: marijancastvan/currency-conversion:latest
+
+      # Bank Account
+      - name: Build and push Bank Account
+        uses: docker/build-push-action@v5
+        with:
+          context: ./BankAccount
+          file: ./BankAccount/Dockerfile
+          push: true
+          tags: marijancastvan/bank-account:latest
+
+      # Crypto Wallet
+      - name: Build and push Crypto Wallet
+        uses: docker/build-push-action@v5
+        with:
+          context: ./CryptoWallet
+          file: ./CryptoWallet/Dockerfile
+          push: true
+          tags: marijancastvan/crypto-wallet:latest
+
+      # Crypto Exchange
+      - name: Build and push Crypto Exchange
+        uses: docker/build-push-action@v5
+        with:
+          context: ./CryptoExchange
+          file: ./CryptoExchange/Dockerfile
+          push: true
+          tags: marijancastvan/crypto-exchange:latest
+
+      # Crypto Conversion
+      - name: Build and push Crypto Conversion
+        uses: docker/build-push-action@v5
+        with:
+          context: ./CryptoConversion
+          file: ./CryptoConversion/Dockerfile
+          push: true
+          tags: marijancastvan/crypto-conversion:latest
+
+      # Trade Service
+      - name: Build and push Trade Service
+        uses: docker/build-push-action@v5
+        with:
+          context: ./TradeService
+          file: ./TradeService/Dockerfile
+          push: true
+          tags: marijancastvan/trade-service:latest
+
+      # API Gateway
+      - name: Build and push API Gateway
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api-gateway
+          file: ./api-gateway/Dockerfile
+          push: true
+          tags: marijancastvan/api-gateway:latest
