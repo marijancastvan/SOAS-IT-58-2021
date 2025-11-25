@@ -3,23 +3,66 @@ name: Build and Push Docker Images
 on:
   push:
     branches:
-      - master  
+      - master
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repozitorijuma
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      # 2️⃣ Logovanje na Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      # UsersService
+      # 3️⃣ Maven build za sve mikroservise
+      - name: Build UsersService JAR
+        working-directory: ./UsersService
+        run: mvn clean package -DskipTests
+
+      - name: Build Naming Server JAR
+        working-directory: ./naming-server
+        run: mvn clean package -DskipTests
+
+      - name: Build Currency Exchange JAR
+        working-directory: ./currency-exchange
+        run: mvn clean package -DskipTests
+
+      - name: Build Currency Conversion JAR
+        working-directory: ./currency-conversion
+        run: mvn clean package -DskipTests
+
+      - name: Build Bank Account JAR
+        working-directory: ./BankAccount
+        run: mvn clean package -DskipTests
+
+      - name: Build Crypto Wallet JAR
+        working-directory: ./CryptoWallet
+        run: mvn clean package -DskipTests
+
+      - name: Build Crypto Exchange JAR
+        working-directory: ./CryptoExchange
+        run: mvn clean package -DskipTests
+
+      - name: Build Crypto Conversion JAR
+        working-directory: ./CryptoConversion
+        run: mvn clean package -DskipTests
+
+      - name: Build Trade Service JAR
+        working-directory: ./TradeService
+        run: mvn clean package -DskipTests
+
+      - name: Build API Gateway JAR
+        working-directory: ./api-gateway
+        run: mvn clean package -DskipTests
+
+      # 4️⃣ Build i push Docker slike
       - name: Build and push UsersService
         uses: docker/build-push-action@v5
         with:
@@ -28,7 +71,6 @@ jobs:
           push: true
           tags: marijancastvan/users-service:latest
 
-      # Naming Server
       - name: Build and push Naming Server
         uses: docker/build-push-action@v5
         with:
@@ -37,7 +79,6 @@ jobs:
           push: true
           tags: marijancastvan/naming-server:latest
 
-      # Currency Exchange
       - name: Build and push Currency Exchange
         uses: docker/build-push-action@v5
         with:
@@ -46,7 +87,6 @@ jobs:
           push: true
           tags: marijancastvan/currency-exchange:latest
 
-      # Currency Conversion
       - name: Build and push Currency Conversion
         uses: docker/build-push-action@v5
         with:
@@ -55,7 +95,6 @@ jobs:
           push: true
           tags: marijancastvan/currency-conversion:latest
 
-      # Bank Account
       - name: Build and push Bank Account
         uses: docker/build-push-action@v5
         with:
@@ -64,7 +103,6 @@ jobs:
           push: true
           tags: marijancastvan/bank-account:latest
 
-      # Crypto Wallet
       - name: Build and push Crypto Wallet
         uses: docker/build-push-action@v5
         with:
@@ -73,7 +111,6 @@ jobs:
           push: true
           tags: marijancastvan/crypto-wallet:latest
 
-      # Crypto Exchange
       - name: Build and push Crypto Exchange
         uses: docker/build-push-action@v5
         with:
@@ -82,7 +119,6 @@ jobs:
           push: true
           tags: marijancastvan/crypto-exchange:latest
 
-      # Crypto Conversion
       - name: Build and push Crypto Conversion
         uses: docker/build-push-action@v5
         with:
@@ -91,7 +127,6 @@ jobs:
           push: true
           tags: marijancastvan/crypto-conversion:latest
 
-      # Trade Service
       - name: Build and push Trade Service
         uses: docker/build-push-action@v5
         with:
@@ -100,7 +135,6 @@ jobs:
           push: true
           tags: marijancastvan/trade-service:latest
 
-      # API Gateway
       - name: Build and push API Gateway
         uses: docker/build-push-action@v5
         with:
