@@ -12,6 +12,8 @@ import api.dtos.UserDto;
 import api.proxies.BankAccountProxy;
 import api.services.UsersService;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+
 @Service 
 public class UserServiceImpl implements UsersService {
 
@@ -88,6 +90,7 @@ public class UserServiceImpl implements UsersService {
 
 
 	@Override
+    @CircuitBreaker(name = "bankAccountCB", fallbackMethod = "fallbackCreateBankAccount")
 	public ResponseEntity<?> createUser(UserDto dto) {
 		if (dto.getEmail() == null || !dto.getEmail().contains("@")) {
 		    return ResponseEntity.badRequest().body("Invalid email");
@@ -108,6 +111,12 @@ public class UserServiceImpl implements UsersService {
 			
 		}
 	}
+	
+	// fallback metoda za circuit breaker
+    public ResponseEntity<?> fallbackCreateBankAccount(UserDto dto, Throwable t) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Bank account service is temporarily unavailable, try again later");
+    }
 
 	@Override
 	public ResponseEntity<?> updateUser(UserDto dto) {
