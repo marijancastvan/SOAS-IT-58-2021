@@ -41,6 +41,10 @@ jobs:
         working-directory: ./naming-server
         run: mvn clean package -DskipTests
 
+      - name: Install Currency Exchange
+        working-directory: ./currency-exchange
+        run: mvn clean install -DskipTests 
+
       - name: Build Currency Exchange JAR
         working-directory: ./currency-exchange
         run: mvn clean package -DskipTests
