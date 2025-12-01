@@ -26,6 +26,12 @@ jobs:
         working-directory: ./ServiceLibrary
         run: mvn clean install -DskipTests
 
+      # 3.2️⃣ Build Util (OBAVEZNO)
+      - name: Build and install Util
+        working-directory: ./Util
+        run: mvn clean install -DskipTests
+
+
       # 4️⃣ Maven build za sve mikroservise
       - name: Build UsersService JAR
         working-directory: ./UsersService
