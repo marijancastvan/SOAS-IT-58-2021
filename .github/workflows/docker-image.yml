@@ -21,7 +21,12 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
-      # 3️⃣ Maven build za sve mikroservise
+      # 3️⃣ Build ServiceLibrary (OBAVEZNO)
+      - name: Build and install ServiceLibrary
+        working-directory: ./ServiceLibrary
+        run: mvn clean install -DskipTests
+
+      # 4️⃣ Maven build za sve mikroservise
       - name: Build UsersService JAR
         working-directory: ./UsersService
         run: mvn clean package -DskipTests
@@ -62,7 +67,7 @@ jobs:
         working-directory: ./api-gateway
         run: mvn clean package -DskipTests
 
-      # 4️⃣ Build i push Docker slike
+      # 5️⃣ Build i push Docker slike
       - name: Build and push UsersService
         uses: docker/build-push-action@v5
         with:
