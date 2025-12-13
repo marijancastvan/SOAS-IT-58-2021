@@ -15,7 +15,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.4</version> <!-- koristi verziju kompatibilnu s tvojim ostalim mikroservisima -->
+        <version>3.5.7</version> <!-- koristi verziju kompatibilnu s tvojim ostalim mikroservisima -->
         <relativePath/> 
     </parent>
 
@@ -66,7 +66,7 @@
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>
-                <version>2023.0.3</version> <!-- kompatibilno sa Spring Boot 3.x -->
+                <version>2025.0.0</version> <!-- kompatibilno sa Spring Boot 3.x -->
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

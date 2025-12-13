@@ -30,15 +30,23 @@ public class CryptoWalletServiceImpl implements CryptoWalletService {
     private CryptoWalletDto convertModelToDto(CryptoWalletModel model) {
         CryptoWalletDto dto = new CryptoWalletDto();
         dto.email = model.getEmail();
+        dto.role = model.getRole();
         dto.btc = model.getBtc();
         dto.eth = model.getEth();
         dto.ada = model.getAda();
+     // DODATO - uzmi role iz UsersService-a
+        UserDto user = usersProxy.getUserByEmail(model.getEmail());
+        if (user != null) {
+            dto.role = user.getRole();
+        }
+
         return dto;
     }
 
     private CryptoWalletModel convertDtoToModel(CryptoWalletDto dto) {
         CryptoWalletModel model = new CryptoWalletModel();
         model.setEmail(dto.email);
+        model.setRole(dto.role);
         model.setBtc(dto.btc != null ? dto.btc : BigDecimal.ZERO);
         model.setEth(dto.eth != null ? dto.eth : BigDecimal.ZERO);
         model.setAda(dto.ada != null ? dto.ada : BigDecimal.ZERO);
@@ -107,6 +115,7 @@ public class CryptoWalletServiceImpl implements CryptoWalletService {
         if (dto.btc != null) wallet.setBtc(dto.btc);
         if (dto.eth != null) wallet.setEth(dto.eth);
         if (dto.ada != null) wallet.setAda(dto.ada);
+        if (dto.role != null) wallet.setRole(dto.role);
 
         return convertModelToDto(repo.save(wallet));
     }

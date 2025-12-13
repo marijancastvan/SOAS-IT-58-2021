@@ -49,9 +49,15 @@ public class CurrencyConversionServiceImpl implements CurrencyConversionService 
 
     @Override
     public ResponseEntity<?> getConversion(String from, String to, BigDecimal quantity) {
+    	System.out.println(">>> CONVERSION CONTROLLER HIT <<<");
         validateParameters(from, to, quantity);
 
-        String endpoint = "http://localhost:8000/currency-exchange?from=" + from + "&to=" + to;
+        //String endpoint = "http://localhost:8000/currency-exchange?from=" + from + "&to=" + to;
+        String endpoint =
+        	    "http://localhost:8000/api/currency-exchange?from="
+        	    + from.toUpperCase()
+        	    + "&to="
+        	    + to.toUpperCase();
 
         ResponseEntity<CurrencyExchangeDto> exchangeResponse =
                 template.getForEntity(endpoint, CurrencyExchangeDto.class);

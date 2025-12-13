@@ -20,47 +20,89 @@ import reactor.core.publisher.Mono;
 @EnableWebFluxSecurity
 public class ApiGatewayAuthentication {
 
-    // security rules - prilagodi po potrebi
-    @Bean
+	@Bean
     SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
+
         http
-            .csrf(csrf -> csrf.disable())
+            .csrf(ServerHttpSecurity.CsrfSpec::disable)
             .authorizeExchange(exchange -> exchange
-                    .pathMatchers(HttpMethod.POST).hasRole("ADMIN")
-                    .pathMatchers("/currency-exchange/**").permitAll()
-                    .pathMatchers("/currency-conversion/**").hasRole("USER")
-                    .pathMatchers("/users/**").hasRole("ADMIN")
-                    .anyExchange().authenticated()
+
+                /** --------------------------
+                 *  PUBLIC ENDPOINTS
+                 *  -------------------------- */
+            	.pathMatchers("/api/currency-exchange").permitAll()
+            	.pathMatchers("/api/currency-exchange/**").permitAll()
+                .pathMatchers("/crypto-exchange/**").permitAll()
+
+                /** --------------------------
+                 *  USER-ONLY ENDPOINTS
+                 *  -------------------------- */
+
+                // Currency conversion (fiat → fiat)
+                .pathMatchers("/api/currency-conversion").hasRole("USER")
+                .pathMatchers("/api/currency-conversion/**").hasRole("USER")
+
+                // Crypto conversion (BTC → ETH itd.)
+                .pathMatchers(HttpMethod.POST, "/api/conversion").hasRole("USER")
+
+                // Trade service (kupovina/prodaja kripta)
+                .pathMatchers("/api/trade/**").hasRole("USER")
+
+                /** --------------------------
+                 *  SHARED RESOURCES
+                 *  USER, OWNER, ADMIN
+                 *  -------------------------- */
+
+                // Wallets
+                .pathMatchers("/wallet/**").hasAnyRole("USER", "OWNER", "ADMIN")
+
+                // Bank accounts
+                .pathMatchers("/bank-accounts/**").hasAnyRole("USER", "OWNER", "ADMIN")
+
+                /** --------------------------
+                 *  ADMIN-ONLY ENDPOINTS
+                 *  -------------------------- */
+                .pathMatchers("/users/**").hasRole("ADMIN")
+
+                /** --------------------------
+                 * EVERYTHING ELSE → AUTH REQUIRED
+                 * -------------------------- */
+                .anyExchange().authenticated()
             )
+
             .httpBasic(Customizer.withDefaults());
 
         return http.build();
     }
 
-    // load-balanced WebClient.Builder (koristi lb://service-name ili http://service-name)
+    // Load balanced WebClient (Eureka support)
     @Bean
     WebClient.Builder webClientBuilder(ReactorLoadBalancerExchangeFilterFunction lbFunction) {
         return WebClient.builder().filter(lbFunction);
     }
 
+    // Remote user lookup from UsersService
     @Bean
-    ReactiveUserDetailsService reactiveUserDetailsService(WebClient.Builder webClientBuilder, BCryptPasswordEncoder encoder) {
-        // koristimo service name "users-service" (registracija u Eureki obezbedi ovo)
+    ReactiveUserDetailsService reactiveUserDetailsService(
+            WebClient.Builder webClientBuilder,
+            BCryptPasswordEncoder encoder
+    ) {
         WebClient client = webClientBuilder.baseUrl("http://users-service").build();
 
-        return username -> client.get()
-                .uri(uriBuilder -> uriBuilder
-                        .path("/api/users/email")
-                        .queryParam("email", username)
-                        .build()
-                )
-                .retrieve()
-                .bodyToMono(UserDto.class)
-                .flatMap(dto -> Mono.just(User.withUsername(dto.getEmail())
-                        .password(encoder.encode(dto.getPassword()))
-                        .roles(dto.getRole())
-                        .build()
-                ));
+        return username ->
+                client.get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/api/users/email")
+                                .queryParam("email", username)
+                                .build())
+                        .retrieve()
+                        .bodyToMono(UserDto.class)
+                        .map(dto ->
+                                User.withUsername(dto.getEmail())
+                                        .password(dto.getPassword())
+                                        .roles(dto.getRole())
+                                        .build()
+                        );
     }
 
     @Bean
@@ -68,3 +110,4 @@ public class ApiGatewayAuthentication {
         return new BCryptPasswordEncoder();
     }
 }
+

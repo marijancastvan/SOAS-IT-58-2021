@@ -1,5 +1,6 @@
 package com.example.tradeservice;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import api.dtos.TradeRequestDto;
@@ -16,8 +17,19 @@ public class TradeController {
         this.service = service;
     }
 
-    @PostMapping
+    /*@PostMapping
     public ResponseEntity<TradeResultDto> executeTrade(@RequestBody TradeRequestDto dto) {
         return ResponseEntity.ok(service.executeTrade(dto));
+    }*/
+    
+    @PostMapping
+    public ResponseEntity<TradeResultDto> executeTrade(@RequestBody TradeRequestDto dto) {
+        try {
+            return ResponseEntity.ok(service.executeTrade(dto));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                 .body(new TradeResultDto(e.getMessage(), null, null));
+        }
     }
+
 }

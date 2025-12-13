@@ -14,6 +14,8 @@ public class CryptoWalletModel implements Serializable {
 
     @Column(nullable = false, unique = true)
     private String email;
+    
+    private String role;
 
     @Column(nullable = false)
     private BigDecimal btc = BigDecimal.ZERO;
@@ -28,6 +30,8 @@ public class CryptoWalletModel implements Serializable {
     public Long getId() { return id; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public String getRole() { return role; }          
+    public void setRole(String role) { this.role = role; } 
     public BigDecimal getBtc() { return btc; }
     public void setBtc(BigDecimal btc) { this.btc = btc; }
     public BigDecimal getEth() { return eth; }
