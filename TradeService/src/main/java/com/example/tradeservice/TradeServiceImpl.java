@@ -34,8 +34,20 @@ public class TradeServiceImpl implements TradeService {
     @Override
     public TradeResultDto executeTrade(TradeRequestDto dto) {
         // Dohvati wallet i banku
-        CryptoWalletDto wallet = walletProxy.getWalletByEmail(dto.email);
-        var bankAccount = bankProxy.getByEmail(dto.email);
+       // CryptoWalletDto wallet = walletProxy.getWalletByEmail(dto.email);
+    	CryptoWalletDto wallet = walletProxy.getWalletByEmail(
+    	        dto.email,
+    	        "USER",
+    	        dto.email
+    	);
+
+        //var bankAccount = bankProxy.getByEmail(dto.email);
+    	var bankAccount = bankProxy.getByEmail(
+    	        dto.email,
+    	        "USER",
+    	        dto.email
+    	);
+
 
         if (wallet == null) throw new RuntimeException("Wallet not found for email: " + dto.email);
         if (bankAccount == null) throw new RuntimeException("BankAccount not found for email: " + dto.email);
@@ -67,10 +79,24 @@ public class TradeServiceImpl implements TradeService {
 
             // Update stanja
             bankAccount.updateAmount(dto.fromCurrency, fromBalance.subtract(dto.amount));
-            bankProxy.updateWallet(dto.email, bankAccount);
+            //bankProxy.updateWallet(dto.email, bankAccount);
+            bankProxy.updateWallet(
+                    dto.email,
+                    bankAccount,
+                    "USER",
+                    dto.email
+            );
+
 
             wallet.updateAmount(dto.toCurrency, wallet.getAmount(dto.toCurrency).add(convertedAmount));
-            walletProxy.updateWallet(dto.email, wallet);
+            //walletProxy.updateWallet(dto.email, wallet);
+            walletProxy.updateWallet(
+                    dto.email,
+                    wallet,
+                    "USER",
+                    dto.email
+            );
+
 
         } else if (!fromIsFiat && toIsFiat) {
             // Crypto -> Fiat
@@ -88,10 +114,24 @@ public class TradeServiceImpl implements TradeService {
 
             // Update stanja
             wallet.updateAmount(dto.fromCurrency, fromBalance.subtract(dto.amount));
-            walletProxy.updateWallet(dto.email, wallet);
+            //walletProxy.updateWallet(dto.email, wallet);
+            walletProxy.updateWallet(
+                    dto.email,
+                    wallet,
+                    "USER",
+                    dto.email
+            );
+
 
             bankAccount.updateAmount(dto.toCurrency, bankAccount.getAmount(dto.toCurrency).add(convertedAmount));
-            bankProxy.updateWallet(dto.email, bankAccount);
+            //bankProxy.updateWallet(dto.email, bankAccount);
+            bankProxy.updateWallet(
+                    dto.email,
+                    bankAccount,
+                    "USER",
+                    dto.email
+            );
+
 
         } else {
             throw new RuntimeException("Invalid currency conversion: must be fiat->crypto or crypto->fiat");

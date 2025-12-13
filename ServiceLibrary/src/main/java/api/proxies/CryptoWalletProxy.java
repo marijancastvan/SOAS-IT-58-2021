@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import api.dtos.CryptoWalletDto;
@@ -14,14 +15,29 @@ import java.util.List;
 @FeignClient(name = "crypto-wallet", url = "http://localhost:8300", path = "/api/wallet")
 public interface CryptoWalletProxy {
 
+	/*@GetMapping("/{email}")
+    CryptoWalletDto getWalletByEmail(@PathVariable("email") String email);*/
+	
 	@GetMapping("/{email}")
-    CryptoWalletDto getWalletByEmail(@PathVariable("email") String email);
+    CryptoWalletDto getWalletByEmail(
+        @PathVariable("email") String email,
+        @RequestHeader("X-User-Role") String role,
+        @RequestHeader("X-Requester-Email") String requesterEmail
+    );
 
     @GetMapping("/all")
     List<CryptoWalletDto> getAllWallets();
 
+   /* @PutMapping("/update/{email}")
+    void updateWallet(@PathVariable String email, @RequestBody CryptoWalletDto dto);*/
+    
     @PutMapping("/update/{email}")
-    void updateWallet(@PathVariable String email, @RequestBody CryptoWalletDto dto);
+    void updateWallet(
+        @PathVariable("email") String email,
+        @RequestBody CryptoWalletDto dto,
+        @RequestHeader("X-User-Role") String role,
+        @RequestHeader("X-Requester-Email") String requesterEmail
+    );
 
     @PostMapping("/create")
     void createWalletForNewUser(@RequestParam String email);

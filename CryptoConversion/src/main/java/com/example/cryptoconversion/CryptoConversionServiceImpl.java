@@ -31,7 +31,12 @@ public class CryptoConversionServiceImpl implements CryptoConversionService {
     public CryptoConversionResultDto convert(CryptoConversionDto dto) {
 
         // Dohvati wallet korisnika
-        CryptoWalletDto wallet = walletProxy.getWalletByEmail(dto.email);
+        //CryptoWalletDto wallet = walletProxy.getWalletByEmail(dto.email);
+    	CryptoWalletDto wallet = walletProxy.getWalletByEmail(
+    	        dto.email,
+    	        "USER",
+    	        dto.email
+    	);
 
         // Provera role korisnika
         String role = wallet.role;
@@ -86,7 +91,14 @@ public class CryptoConversionServiceImpl implements CryptoConversionService {
         // Update wallet
         wallet.updateAmount(dto.fromCurrency, fromAmount.subtract(dto.amount));
         wallet.updateAmount(dto.toCurrency, wallet.getAmount(dto.toCurrency).add(convertedAmount));
-        walletProxy.updateWallet(dto.email, wallet);
+        //walletProxy.updateWallet(dto.email, wallet);
+        walletProxy.updateWallet(
+                dto.email,
+                wallet,
+                "USER",
+                dto.email
+        );
+
 
         // Kreiraj poruku
         String message = String.format("Successfully converted %s: %s to %s: %s",
