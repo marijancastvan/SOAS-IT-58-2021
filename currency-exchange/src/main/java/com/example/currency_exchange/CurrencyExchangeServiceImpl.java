@@ -3,7 +3,9 @@ package com.example.currency_exchange;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.core.env.Environment;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
 
 import com.example.Util.exceptions.CurrencyDoesntExistException;
 import com.example.Util.exceptions.NoDataFoundException;
@@ -11,50 +13,46 @@ import com.example.Util.exceptions.NoDataFoundException;
 import api.dtos.CurrencyExchangeDto;
 import api.services.CurrencyExchangeService;
 
-@Service
+@RestController
 public class CurrencyExchangeServiceImpl implements CurrencyExchangeService {
 
-    @Autowired
-    private CurrencyExchangeRepository repo;
+	@Autowired
+	private CurrencyExchangeRepository repo;
+	
+	@Autowired
+	private Environment environment;
+	
+	@Override
+	public ResponseEntity<?> getCurrencyExchange(String from, String to) {
+		String missingCurrency = null;
+		List<String> validCurrencies = repo.findAllDistinctCurrencies();
+//		proveriti da li from parametar odgovara nekoj valuti
+		if(!isValidCurrency(from)) missingCurrency = from;
+//		proveriti da li to parametar odgovara nekoj valuti
+		else if(!isValidCurrency(to)) missingCurrency = to;
+//		provera da li je missingCurrency razlicit od null i ako jeste bacanje domain exception-a
+		if(missingCurrency != null) throw new 
+		CurrencyDoesntExistException(String.format("Currency %s does not exist in the database", missingCurrency),
+				validCurrencies);
+		
+		CurrencyExchangeModel dbResponse  = repo.findByFromAndTo(from, to);
+		
+		if(dbResponse == null) {
+			throw new NoDataFoundException(String.format("Requested exchange rate [%s to %s] does not exist", from,to),
+					validCurrencies);
+		}
 
-    @Override
-    public CurrencyExchangeDto getCurrencyExchange(String from, String to) {
-        // Dohvati sve validne valute
-        List<String> validCurrencies = repo.findAllDistinctCurrencies();
-
-        // Proveri da li su unete valute validne
-        if (!isValidCurrency(from, validCurrencies)) {
-            throw new CurrencyDoesntExistException(
-                String.format("Currency %s does not exist in the database", from),
-                validCurrencies
-            );
-        }
-        if (!isValidCurrency(to, validCurrencies)) {
-            throw new CurrencyDoesntExistException(
-                String.format("Currency %s does not exist in the database", to),
-                validCurrencies
-            );
-        }
-
-        // Pronađi kurs u bazi
-        CurrencyExchangeModel dbResponse = repo.findByFromAndTo(from, to);
-        if (dbResponse == null) {
-            throw new NoDataFoundException(
-                String.format("Requested exchange rate [%s to %s] does not exist", from, to),
-                validCurrencies
-            );
-        }
-
-        // Kreiraj i vrati DTO
-        return new CurrencyExchangeDto(
-                dbResponse.getFrom(),
-                dbResponse.getTo(),
-                dbResponse.getExchangeRate()
-        );
-    }
-
-    private boolean isValidCurrency(String currency, List<String> validCurrencies) {
-        return validCurrencies.stream()
-                              .anyMatch(s -> s.equalsIgnoreCase(currency));
-    }
+		CurrencyExchangeDto dto = new CurrencyExchangeDto(dbResponse.getFrom(), dbResponse.getTo(), dbResponse.getExchangeRate());
+		dto.setPort(environment.getProperty("local.server.port"));
+		return ResponseEntity.ok(dto);
+	}
+	
+	public boolean isValidCurrency(String currency) {
+		List<String> currencies = repo.findAllDistinctCurrencies();
+		for(String s: currencies) {
+			if(s.equalsIgnoreCase(currency))
+				return true;
+		}
+		return false;
+	}
 }

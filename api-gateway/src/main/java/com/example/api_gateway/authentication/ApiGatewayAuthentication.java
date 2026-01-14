@@ -10,6 +10,8 @@ import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.core.userdetails.ReactiveUserDetailsService;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -21,90 +23,66 @@ import reactor.core.publisher.Mono;
 public class ApiGatewayAuthentication {
 
 	@Bean
-    SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
+	SecurityWebFilterChain filterChain(ServerHttpSecurity http) {
+		http
+		.csrf(csrf -> csrf.disable())
+		.authorizeExchange(exchange -> exchange
+				.pathMatchers("/currency-exchange").permitAll()
+				.pathMatchers("/currency-conversion-feign").hasRole("USER")
+				
+				.pathMatchers(HttpMethod.GET, "/users/**").hasAnyRole("ADMIN", "OWNER")
+				.pathMatchers(HttpMethod.POST, "/users/newUser").hasAnyRole("OWNER", "ADMIN")
+				.pathMatchers(HttpMethod.DELETE, "/users/{id}").hasRole("OWNER")
+				.pathMatchers(HttpMethod.PUT, "/users/{id}").hasAnyRole("OWNER", "ADMIN")
+				
+				.pathMatchers(HttpMethod.POST, "/bank-accounts").hasRole("ADMIN")
+				.pathMatchers(HttpMethod.GET, "/bank-accounts/**").hasRole("ADMIN")
+				.pathMatchers(HttpMethod.PUT, "/bank-accounts/{email}").hasRole("ADMIN")
+				.pathMatchers(HttpMethod.GET, "/bank-accounts/{email}").hasRole("ADMIN")
+				.pathMatchers(HttpMethod.GET, "/bank-account/user").hasRole("USER")
+				.pathMatchers(HttpMethod.DELETE, "/bank-accounts/{email}").denyAll()
+				
+				.pathMatchers("/crypto-exchange").permitAll()
+				.pathMatchers(HttpMethod.POST, "/crypto-wallets").hasRole("ADMIN")
+				.pathMatchers(HttpMethod.GET, "/crypto-wallets/**").hasRole("ADMIN")
+				.pathMatchers(HttpMethod.PUT, "/crypto-wallets/{email}").hasRole("ADMIN")
+				.pathMatchers(HttpMethod.GET, "/crypto-wallets/{email}").hasRole("ADMIN")
+				.pathMatchers(HttpMethod.GET, "/crypto-wallet/user").hasRole("USER")
+				.pathMatchers(HttpMethod.DELETE, "/crypto-wallets/{email}").denyAll()
+				
+				.pathMatchers("/crypto-conversion-feign").hasRole("USER")
+				
+				.pathMatchers("/trade-service").hasRole("USER")
+				).httpBasic(Customizer.withDefaults());
+		
+		return http.build();
+	}
+	
 
-        http
-            .csrf(ServerHttpSecurity.CsrfSpec::disable)
-            .authorizeExchange(exchange -> exchange
+   @Bean
+    ReactiveUserDetailsService UserDetailsService(WebClient.Builder webClientBuilder) {
 
-                /** --------------------------
-                 *  PUBLIC ENDPOINTS
-                 *  -------------------------- */
-            	.pathMatchers("/api/currency-exchange").permitAll()
-            	.pathMatchers("/api/currency-exchange/**").permitAll()
-                .pathMatchers("/crypto-exchange/**").permitAll()
-
-                /** --------------------------
-                 *  USER-ONLY ENDPOINTS
-                 *  -------------------------- */
-
-                // Currency conversion (fiat → fiat)
-                .pathMatchers("/api/currency-conversion").hasRole("USER")
-                .pathMatchers("/api/currency-conversion/**").hasRole("USER")
-
-                // Crypto conversion (BTC → ETH itd.)
-                .pathMatchers(HttpMethod.POST, "/api/conversion").hasRole("USER")
-
-                // Trade service (kupovina/prodaja kripta)
-                .pathMatchers("/api/trade/**").hasRole("USER")
-
-                /** --------------------------
-                 *  SHARED RESOURCES
-                 *  USER, OWNER, ADMIN
-                 *  -------------------------- */
-
-                // Wallets
-                .pathMatchers("/wallet/**").hasAnyRole("USER", "OWNER", "ADMIN")
-
-                // Bank accounts
-                .pathMatchers("/bank-accounts/**").hasAnyRole("USER", "OWNER", "ADMIN")
-
-                /** --------------------------
-                 *  ADMIN-ONLY ENDPOINTS
-                 *  -------------------------- */
-                .pathMatchers("/users/**").hasRole("ADMIN")
-
-                /** --------------------------
-                 * EVERYTHING ELSE → AUTH REQUIRED
-                 * -------------------------- */
-                .anyExchange().authenticated()
-            )
-
-            .httpBasic(Customizer.withDefaults());
-
-        return http.build();
-    }
-
-    // Load balanced WebClient (Eureka support)
-    @Bean
-    WebClient.Builder webClientBuilder(ReactorLoadBalancerExchangeFilterFunction lbFunction) {
-        return WebClient.builder().filter(lbFunction);
-    }
-
-    // Remote user lookup from UsersService
-    @Bean
-    ReactiveUserDetailsService reactiveUserDetailsService(
-            WebClient.Builder webClientBuilder,
-            BCryptPasswordEncoder encoder
-    ) {
-        WebClient client = webClientBuilder.baseUrl("http://users-service").build();
-
-        return username ->
-                client.get()
-                        .uri(uriBuilder -> uriBuilder
-                                .path("/api/users/email")
-                                .queryParam("email", username)
-                                .build())
-                        .retrieve()
-                        .bodyToMono(UserDto.class)
-                        .map(dto ->
-                                User.withUsername(dto.getEmail())
-                                        .password(dto.getPassword())
-                                        .roles(dto.getRole())
-                                        .build()
-                        );
-    }
-
+		WebClient client = webClientBuilder.baseUrl("http://localhost:8770").build();
+		
+// 		Verzija za Docker
+//		WebClient client = webClientBuilder.baseUrl("http://users-service:8770").build();
+		
+		return user -> client.get()
+				.uri(uriBuilder -> uriBuilder
+						.path("/users/email")
+						.queryParam("email", user)
+						.build()
+				)
+				.retrieve()
+				.bodyToMono(UserDto.class)
+				.map(dto -> User.withUsername(dto.getEmail())
+						.password(dto.getPassword())
+						.roles(dto.getRole())
+						.build()
+				);
+			
+		}
+    
     @Bean
     BCryptPasswordEncoder getEncoder() {
         return new BCryptPasswordEncoder();

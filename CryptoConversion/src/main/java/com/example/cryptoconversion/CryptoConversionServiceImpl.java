@@ -1,121 +1,145 @@
 package com.example.cryptoconversion;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import api.dtos.CryptoConversionDto;
-import api.dtos.CryptoConversionResultDto;
-import api.dtos.CryptoWalletDto;
-import api.proxies.CryptoWalletProxy;
-import api.services.CryptoConversionService;
-import api.proxies.CryptoExchangeProxy;
-
 import java.math.BigDecimal;
-import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
+import java.util.Map; 
 
-@Service
-@Transactional
+import org.bouncycastle.util.encoders.Base64;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+
+import api.dtos.CryptoExchangeDto;
+import api.dtos.CryptoValuesDto;
+import api.dtos.CryptoWalletDto;
+import api.dtos.UserDto;
+import api.proxies.CryptoExchangeProxy;
+import api.proxies.CryptoWalletProxy;
+import api.proxies.UsersServiceProxy;
+import api.services.CryptoConversionService;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.Retry;
+import io.github.resilience4j.retry.RetryRegistry;
+import com.example.Util.exceptions.InvalidQuantityException;
+
+@RestController
 public class CryptoConversionServiceImpl implements CryptoConversionService {
 
-    private final CryptoWalletProxy walletProxy;
-    private final CryptoExchangeProxy exchangeProxy;
+	@Autowired
+	private CryptoExchangeProxy exchangeProxy;
+	
+	@Autowired
+	private CryptoWalletProxy walletProxy;
+	
+	@Autowired
+	private UsersServiceProxy usersProxy;
+	
+	CryptoExchangeDto response;
+	
+	Retry retry;
+	
+	public CryptoConversionServiceImpl(RetryRegistry registry) {
+		retry = registry.retry("default");
+	}
 
-    public CryptoConversionServiceImpl(CryptoWalletProxy walletProxy, CryptoExchangeProxy exchangeProxy) {
-        this.walletProxy = walletProxy;
-        this.exchangeProxy = exchangeProxy;
-    }
+	@Override
+	@CircuitBreaker(name = "cb", fallbackMethod = "fallback")
+	public ResponseEntity<?> getCryptoConversionFeign(String from, String to, BigDecimal quantity,
+			String authorizationHeader) {
+		try {
+	        UserDto user = usersProxy.getUserByEmailFeign(getEmailFromAuthHeader(authorizationHeader));
 
-    @Override
-    public CryptoConversionResultDto convert(CryptoConversionDto dto) {
+	        if (user == null) {
+		           return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+		        }
+	        
+	        CryptoWalletDto cryptoWallet = walletProxy.getWalletForUser(authorizationHeader);
 
-        // Dohvati wallet korisnika
-        //CryptoWalletDto wallet = walletProxy.getWalletByEmail(dto.email);
-    	CryptoWalletDto wallet = walletProxy.getWalletByEmail(
-    	        dto.email,
-    	        "USER",
-    	        dto.email
-    	);
+	        if (cryptoWallet == null) {
+	           return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Crypto wallet not found for user");
+	        }
+	        
+	        BigDecimal accountCurrencyAmountTo = walletProxy.getUserCurrencyAmount(user.getEmail(), to);
+	        if(accountCurrencyAmountTo == null) {
+	        	return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Currency " + to + " is not valid");
+	        }
+	        
+	        BigDecimal accountCurrencyAmountFrom = walletProxy.getUserCurrencyAmount(user.getEmail(), from);
+	        if(accountCurrencyAmountFrom == null) {
+	        	return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Currency " + from + " is not valid");
+	        }
+	        
+	        if (accountCurrencyAmountFrom.compareTo(quantity) < 0) {
+	        	throw new InvalidQuantityException(String.format("Quantity of " + quantity + " is too large, User crypto wallet currency balance: (" + from + ") " + accountCurrencyAmountFrom));
+	        }
+	        
+	        retry.executeSupplier(()-> response = exchangeProxy.getExchange(from, to).getBody());
+	        //u response cuvam kurs
+	        //response = exchangeProxy.getExchange(from, to).getBody();
+	        
+	        if (response == null) {
+	            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Crypto exchange service response is null");
+	        }
 
-        // Provera role korisnika
-        String role = wallet.role;
-        if("OWNER".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role)) {
-            throw new RuntimeException("Access denied: only USER role allowed");
-        }
+	        BigDecimal exchangeValue = response.getExchangeRate();
+	        BigDecimal totalExchanged = exchangeValue.multiply(quantity);
+	        
+	        //nova stanja crypto valuta
+	        CryptoValuesDto cryptoFromDto = new CryptoValuesDto(from, accountCurrencyAmountFrom.subtract(quantity));
+	        CryptoValuesDto cryptoToDto =  new CryptoValuesDto(to, accountCurrencyAmountTo.add(totalExchanged));
+			
+			ArrayList<CryptoValuesDto> newList = new ArrayList<CryptoValuesDto>();
+			
+			newList.add(cryptoFromDto);
+			newList.add(cryptoToDto);
+			
+			
+			CryptoWalletDto updateCryptoWallet = new CryptoWalletDto(newList, user.getEmail());
+					
+			
+			ResponseEntity<?> updatedBalances = walletProxy.updateWallet(user.getEmail(), updateCryptoWallet);
+			if(updatedBalances.getStatusCode().is4xxClientError()) {
+				return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Updating crypto balances failed!");
+			}
+			
+			
+			CryptoWalletDto updatedCryptoWallet = walletProxy.getWalletForUser(authorizationHeader);
+			String message = "Conversion was successfull! " + from + ":" + quantity + " is exchanged for " + to + ":" + totalExchanged;
+					
+			
+			Map<String, Object> responseBody = new HashMap<>();
+			responseBody.put("cryptoWallet", updatedCryptoWallet);
+			responseBody.put("message", message);
 
-        // Provera da li korisnik ima dovoljno sredstava
-        BigDecimal fromAmount = wallet.getAmount(dto.fromCurrency);
-        if(fromAmount.compareTo(dto.amount) < 0) {
-            throw new RuntimeException("Insufficient funds");
-        }
-
-        BigDecimal convertedAmount;
-
-        boolean fromIsCrypto = !isFiat(dto.fromCurrency);
-        boolean toIsCrypto = !isFiat(dto.toCurrency);
-
-        if(fromIsCrypto && toIsCrypto) {
-            // Crypto -> Crypto: koristimo USD kao međukorak
-            String intermediate = "USD";
-            BigDecimal rateToUSD = exchangeProxy.getRate(dto.fromCurrency, intermediate);
-            BigDecimal intermediateAmount = dto.amount.multiply(rateToUSD);
-            BigDecimal rateUSDToTarget = exchangeProxy.getRate(intermediate, dto.toCurrency);
-            convertedAmount = intermediateAmount.multiply(rateUSDToTarget);
-        } else {
-            // Crypto -> Fiat ili Fiat -> Crypto
-            String intermediate = dto.fromCurrency;
-            if(!isFiat(dto.fromCurrency) && !isFiat(dto.toCurrency)) {
-                intermediate = "USD";
-            } else if(isFiat(dto.fromCurrency) && !isFiat(dto.toCurrency)) {
-                // Fiat -> Crypto: ako fiat nije USD/EUR, koristi USD/EUR kao intermediate
-                if(!dto.fromCurrency.equalsIgnoreCase("USD") && !dto.fromCurrency.equalsIgnoreCase("EUR")) {
-                    intermediate = "USD";
-                }
-            } else if(!isFiat(dto.fromCurrency) && isFiat(dto.toCurrency)) {
-                // Crypto -> Fiat: ako fiat nije USD/EUR, koristi USD/EUR kao intermediate
-                if(!dto.toCurrency.equalsIgnoreCase("USD") && !dto.toCurrency.equalsIgnoreCase("EUR")) {
-                    intermediate = "USD";
-                }
-            }
-
-            BigDecimal rateFrom = exchangeProxy.getRate(dto.fromCurrency, intermediate);
-            BigDecimal intermediateAmount = dto.amount.multiply(rateFrom);
-            BigDecimal rateTo = exchangeProxy.getRate(intermediate, dto.toCurrency);
-            convertedAmount = intermediateAmount.multiply(rateTo);
-        }
-
-        // Rounding na 8 decimala za crypto preciznost
-        convertedAmount = convertedAmount.setScale(8, RoundingMode.HALF_UP);
-
-        // Update wallet
-        wallet.updateAmount(dto.fromCurrency, fromAmount.subtract(dto.amount));
-        wallet.updateAmount(dto.toCurrency, wallet.getAmount(dto.toCurrency).add(convertedAmount));
-        //walletProxy.updateWallet(dto.email, wallet);
-        walletProxy.updateWallet(
-                dto.email,
-                wallet,
-                "USER",
-                dto.email
-        );
-
-
-        // Kreiraj poruku
-        String message = String.format("Successfully converted %s: %s to %s: %s",
-                dto.fromCurrency, dto.amount, dto.toCurrency, convertedAmount);
-
-        Map<String, BigDecimal> walletState = new HashMap<>();
-        walletState.put(dto.fromCurrency, wallet.getAmount(dto.fromCurrency));
-        walletState.put(dto.toCurrency, wallet.getAmount(dto.toCurrency));
-
-        return new CryptoConversionResultDto(message, walletState);
-    }
-
-    private boolean isFiat(String currency) {
-        return currency.equalsIgnoreCase("USD") ||
-               currency.equalsIgnoreCase("EUR") ||
-               currency.equalsIgnoreCase("RSD") ||
-               currency.equalsIgnoreCase("CHF") ||
-               currency.equalsIgnoreCase("GBP");
-    }
+			// Vrati kao ResponseEntity
+			return ResponseEntity.ok(responseBody);
+			
+	 } catch (Exception ex) {
+	        ex.printStackTrace();
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+	                .body("An unexpected error occurred: " + ex.getMessage());
+	    }
+	}
+	
+	public String getEmailFromAuthHeader(String authorizationHeader) {
+		try {
+			String encodedCredentials = authorizationHeader.replace("Basic ", "");
+			byte[] decodedBytes = Base64.decode(encodedCredentials.getBytes());
+			String decodedCredentials = new String(decodedBytes);
+			String[] credentials = decodedCredentials.split(":");
+			String email = credentials[0];
+			return email;
+		} catch(Exception e) {
+			System.out.println("Error while extracting email " + e.getMessage());
+			return null;
+		}
+	}
+	
+	public ResponseEntity<?> fallback(CallNotPermittedException ex){
+		return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+				.body("Crypto conversion service is currently unavailbale, Circuit breaker is in OPEN state!");
+	}	
 }

@@ -1,159 +1,291 @@
 package com.example.tradeservice;
 
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import api.dtos.CryptoWalletDto;
-import api.proxies.CryptoWalletProxy;
-import api.services.TradeService;
-import api.proxies.CryptoExchangeProxy;
-import api.proxies.BankAccountProxy;
-import api.dtos.TradeRequestDto;
-import api.dtos.TradeResultDto;
-
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-@Service
-@Transactional
+import org.bouncycastle.util.encoders.Base64;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.Util.exceptions.InvalidQuantityException;
+
+import api.dtos.BankAccountDto;
+import api.dtos.CryptoValuesDto;
+import api.dtos.CryptoWalletDto;
+import api.dtos.FiatBalanceDto;
+import api.proxies.CryptoWalletProxy;
+import api.proxies.CurrencyConversionProxy;
+import api.proxies.UsersServiceProxy;
+import api.services.TradeService;
+import feign.FeignException;
+import api.proxies.CryptoExchangeProxy;
+import api.proxies.BankAccountProxy;
+
+@RestController
 public class TradeServiceImpl implements TradeService {
 
-    private final CryptoWalletProxy walletProxy;
-    private final CryptoExchangeProxy exchangeProxy;
-    private final BankAccountProxy bankProxy;
+	private static final Logger log = LoggerFactory.getLogger(TradeServiceImpl.class);
+	
+	@Autowired
+	private TradeServiceRepository repository;
 
-    public TradeServiceImpl(CryptoWalletProxy walletProxy,
-                            CryptoExchangeProxy exchangeProxy,
-                            BankAccountProxy bankProxy) {
-        this.walletProxy = walletProxy;
-        this.exchangeProxy = exchangeProxy;
-        this.bankProxy = bankProxy;
-    }
+	@Autowired
+	private UsersServiceProxy userProxy;
 
-    @Override
-    public TradeResultDto executeTrade(TradeRequestDto dto) {
-        // Dohvati wallet i banku
-       // CryptoWalletDto wallet = walletProxy.getWalletByEmail(dto.email);
-    	CryptoWalletDto wallet = walletProxy.getWalletByEmail(
-    	        dto.email,
-    	        "USER",
-    	        dto.email
-    	);
+	@Autowired
+	private BankAccountProxy bankProxy;
+	
+	@Autowired
+	private CryptoWalletProxy walletProxy;
+	
+	@Autowired
+	private CurrencyConversionProxy currencyConversionProxy;
+	
+	
+	@Override
+	public ResponseEntity<?> tradeCurrencies(String from, String to, BigDecimal quantity, String authorizationHeader) {
+		try {
+			
+            String userEmail = getEmailFromAuthHeader(authorizationHeader);
+            
+            //IZ FIAT U CRYPTO VALUTU
+            if((from.equals("EUR") || from.equals("USD") || from.equals("RSD") || from.equals("CHF") || from.equals("CAD") || from.equals("GBP"))
+            		&& (to.equals("BTC") || to.equals("ETH") || to.equals("LTC"))) {
+            	
+            	if(from.equals("RSD") || from.equals("CHF") || from.equals("CAD") || from.equals("GBP"))
+            	{
+            		ResponseEntity<?> responseEntity = currencyConversionProxy.getConversionFeign(from, "EUR", quantity, authorizationHeader);
 
-        //var bankAccount = bankProxy.getByEmail(dto.email);
-    	var bankAccount = bankProxy.getByEmail(
-    	        dto.email,
-    	        "USER",
-    	        dto.email
-    	);
+            		// body je mapa
+            		Map<String, Object> responseBody = (Map<String, Object>) responseEntity.getBody();
 
+            		// izvuci message
+            		String message = (String) responseBody.get("message");
 
-        if (wallet == null) throw new RuntimeException("Wallet not found for email: " + dto.email);
-        if (bankAccount == null) throw new RuntimeException("BankAccount not found for email: " + dto.email);
+            		// Parsiranje totalExchanged iz message
+            		String afterFor = message.split("for ")[1]; // npr. "BTC:0.4"
+            		BigDecimal totalExchanged = new BigDecimal(afterFor.split(":")[1]);
+            		
+            		quantity = totalExchanged;
+            		from="EUR";
+            		
+            	}
+            	
+                TradeServiceModel exchangeRate = getExchange(from, to); //dole ova metoda
+                
+                if (exchangeRate == null) {
+                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Exchange rate not found");
+                }
+               
+                ResponseEntity<?> updateAccountResponse;
+                //AZURIRAM BANKOVNI RACUN
+                try {
+                	
+                	BigDecimal accountCurrencyAmountFrom = bankProxy.getUserCurrencyAmount(userEmail, from);
+                	
+                    FiatBalanceDto fiatFromDto = new FiatBalanceDto(from, accountCurrencyAmountFrom.subtract(quantity));
+        			
+        			ArrayList<FiatBalanceDto> newList = new ArrayList<FiatBalanceDto>();
+        			
+        			newList.add(fiatFromDto);
+        			
+        			BankAccountDto updateAccount = new BankAccountDto(
+        					userEmail,
+        					newList
+        			);
+        			
+                    updateAccountResponse = bankProxy.updateBankAccount(userEmail, updateAccount);
+                    
 
-        // Provera role korisnika
-        String role = wallet.role;
-        if ("OWNER".equalsIgnoreCase(role) || "ADMIN".equalsIgnoreCase(role)) {
-            throw new RuntimeException("Access denied: only USER role allowed");
-        }
+                } catch (FeignException e) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update bank account");
+                }
+                
+                if (!updateAccountResponse.getStatusCode().is2xxSuccessful()) {
+                    log.error("Failed to update bank account: {}", updateAccountResponse.getBody());
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update bank account");
+                }
+                
+                //AZURIRAM CRYPTO WALLET
+                ResponseEntity<?> updateCryptoWallet;
+                BigDecimal conversionMultiply = exchangeRate.getConversion();
+                BigDecimal cryptoQuantity = conversionMultiply.multiply(quantity);
+                
+                try {
+    	        
+                	BigDecimal cryptoAmountTo = walletProxy.getUserCurrencyAmount(userEmail, to);
+                	CryptoValuesDto cryptoToDto =  new CryptoValuesDto(to, cryptoAmountTo.add(cryptoQuantity));
+    			
+                	ArrayList<CryptoValuesDto> newList = new ArrayList<CryptoValuesDto>();
+    			
+                	newList.add(cryptoToDto);
+    			
+                	CryptoWalletDto updatedCryptoWallet = new CryptoWalletDto(newList, userEmail);
+    					
+                	updateCryptoWallet = walletProxy.updateWallet(userEmail, updatedCryptoWallet);
+                	
+                } catch (FeignException e){
+                	return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update crypto wallet");
+                }
+                
+                if (!updateCryptoWallet.getStatusCode().is2xxSuccessful()) {
+                    log.error("Failed to update crypto wallet: {}", updateAccountResponse.getBody());
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update bank account");
+                }
+                
+    			String message = "Conversion was successfull! " + from + ":" + quantity + " is exchanged for " + to + ":" + cryptoQuantity;
+    			CryptoWalletDto updatedCryptoWallet1 = walletProxy.getWalletForUser(authorizationHeader);
+    			
+    			Map<String, Object> responseBody = new HashMap<>();
+    			responseBody.put("cryptoWallet", updatedCryptoWallet1);
+    			responseBody.put("message", message);
 
-        boolean fromIsFiat = isFiat(dto.fromCurrency);
-        boolean toIsFiat = isFiat(dto.toCurrency);
+    			// Vrati kao ResponseEntity
+    			return ResponseEntity.ok(responseBody);
+             	}
+            
+            //IZ CRYPTO U FIAT
+            else if((to.equals("EUR") || to.equals("USD") || to.equals("RSD") || to.equals("CHF") || to.equals("CAD") || to.equals("GBP"))
+            		&& (from.equals("BTC") || from.equals("ETH") || from.equals("LTC"))) {
+            	
+            	BigDecimal cryptoAmountFrom = walletProxy.getUserCurrencyAmount(userEmail, from);
+        		
+        		if(cryptoAmountFrom.compareTo(quantity) < 0) {
+        			throw new InvalidQuantityException(String.format("Quantity of " + quantity + " is too large, User crypto wallet currency balance: (" + from + ") " + cryptoAmountFrom));
+        		}
+        		
+        		CryptoValuesDto cryptoFromDto = new CryptoValuesDto(from, cryptoAmountFrom.subtract(quantity));
+        		
+        		ArrayList<CryptoValuesDto> newList = new ArrayList<CryptoValuesDto>();
+        		
+        		newList.add(cryptoFromDto);
+        		
+        		CryptoWalletDto updateCryptoWallet = new CryptoWalletDto(newList, userEmail);
+        		
+        		ResponseEntity<?> updatedCryptoBalances = walletProxy.updateWallet(userEmail, updateCryptoWallet);
+            	
+        		//AKO CRYPTO ZELI DA SE ZAMENI ZA NEKI FIAT KOJI NIJE EUR ILI USD
+            	if(to.equals("RSD") || to.equals("CHF") || to.equals("CAD") || to.equals("GBP"))
+            	{
+            		//MENJAMO PRVO CRYPTO U EUR, DOBIJAM KURS
+            		TradeServiceModel exchangeRate = getExchange(from, "EUR");
 
-        BigDecimal convertedAmount;
+            		if (exchangeRate == null) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Exchange rate not found");
+                    }
+            		
+            		//cryptoToEUR predstavlja koliko EUR dobija korisnik za 2 BTC.
+            		BigDecimal cryptoToEUR = quantity.multiply(exchangeRate.getConversion());
+            			
+            		//AZURIRAMO BANKOVNI RACUN, DODAJEMO EUR PRE KONVERZIJE EUR TO NEKI FIAT
+            		BigDecimal currentEURBalance= bankProxy.getUserCurrencyAmount(userEmail, "EUR");
+            		FiatBalanceDto fiatEURDto = new FiatBalanceDto("EUR", currentEURBalance.add(cryptoToEUR));
+                    ArrayList<FiatBalanceDto> updatedEURBalance = new ArrayList<FiatBalanceDto>();
+                    
+                    updatedEURBalance.add(fiatEURDto);
+                    
+                    BankAccountDto updatedEURBank = new BankAccountDto(userEmail,updatedEURBalance);
+                    ResponseEntity<?> updatedBalancesResponse = bankProxy.updateBankAccount(userEmail, updatedEURBank);
+                    
+                    if (!updatedBalancesResponse.getStatusCode().is2xxSuccessful()) {
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update bank account");
+                    }
+                    
+            		//MENJAMO EVRE U TRAZENU VALUTU
+            		ResponseEntity<?> responseEntity = currencyConversionProxy.getConversionFeign("EUR", to, cryptoToEUR, authorizationHeader);
+            		
+            		Map<String, Object> responseBody = (Map<String, Object>) responseEntity.getBody();
+            		
+            		// Parsiranje totalExchanged iz message
+            		String message = (String) responseBody.get("message");
+            		String afterFor = message.split("for ")[1]; // npr. "DIN:0.4"
+            		BigDecimal totalExchanged = new BigDecimal(afterFor.split(":")[1]);
+            		
+            		// Iz crypto u npr din
+            		String finalMessage = "Conversion was successfull! " + from + ":" + quantity + " is exchanged for " + to + ":" + totalExchanged;
+            		
+            		BankAccountDto updatedBankAccount = bankProxy.getBankAccountForUser(authorizationHeader);
+        			
+        			Map<String, Object> responseBody1 = new HashMap<>();
+        			responseBody1.put("bankAccount", updatedBankAccount);
+        			responseBody1.put("message", finalMessage);
 
-        if (fromIsFiat && !toIsFiat) {
-            // Fiat -> Crypto
-            BigDecimal fromBalance = bankAccount.getAmount(dto.fromCurrency);
-            if (fromBalance.compareTo(dto.amount) < 0) throw new RuntimeException("Insufficient fiat funds");
+        			// Vrati kao ResponseEntity
+        			return ResponseEntity.ok(responseBody1);
+            	
+            	} else if (to.equals("EUR") || to.equals("USD")){
+            		
+            		TradeServiceModel exchangeRate = getExchange(from, to);
 
-            // Intermediate valuta: USD ili EUR
-            String intermediate = (dto.fromCurrency.equals("USD") || dto.fromCurrency.equals("EUR")) ? dto.fromCurrency : "USD";
+            		if (exchangeRate == null) {
+                        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Exchange rate not found");
+                    }
+            		
+            		BigDecimal cryptoToFiat = quantity.multiply(exchangeRate.getConversion());
+            		
+            		//AZURIRAM BANKOVNI RACUN, SMANJUJEM KOLICINU EUR
+            		ResponseEntity<?> updateAccountResponse1;
+            		
+            		BigDecimal accountCurrencyAmountTo = bankProxy.getUserCurrencyAmount(userEmail, to);
+                	
+                    FiatBalanceDto fiatToDto = new FiatBalanceDto(to, accountCurrencyAmountTo.add(cryptoToFiat));
+        			
+        			ArrayList<FiatBalanceDto> newList1 = new ArrayList<FiatBalanceDto>();
+        			
+        			newList1.add(fiatToDto);
+        			
+        			BankAccountDto updateAccount = new BankAccountDto(userEmail, newList1);
+        			
+                    updateAccountResponse1 = bankProxy.updateBankAccount(userEmail, updateAccount);
+                    
+                    if (!updateAccountResponse1.getStatusCode().is2xxSuccessful()) {
+                        log.error("Failed to update bank account: {}", updateAccountResponse1.getBody());
+                        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update bank account");
+                    }
+                    
+                    //ISPIS REZULTATA
+            		String message = "Conversion was successfull! " + from + ":" + quantity + " is exchanged for " + to + ":" + cryptoToFiat;
+            		BankAccountDto updatedBankAccount = bankProxy.getBankAccountForUser(authorizationHeader);
+        			
+        			Map<String, Object> responseBody = new HashMap<>();
+        			responseBody.put("bankAccount", updatedBankAccount);
+        			responseBody.put("message", message);
 
-            BigDecimal rateToIntermediate = exchangeProxy.getRate(dto.fromCurrency, intermediate);
-            BigDecimal intermediateAmount = dto.amount.multiply(rateToIntermediate);
+        			return ResponseEntity.ok(responseBody);
+            	}
+            	
+            }
 
-            BigDecimal cryptoRate = exchangeProxy.getRate(intermediate, dto.toCurrency);
-            convertedAmount = intermediateAmount.multiply(cryptoRate);
+		} catch (Exception e) {
+	        log.error("Unexpected error in tradeCurrenices", e);
+	        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Unexpected error: " + e.getMessage());
+	    }
+		
+		return null;
+	}
+	
+	public TradeServiceModel getExchange(String from, String to) {
+		TradeServiceModel exchange = repository.findByFromAndToIgnoreCase(from, to);
+		return exchange;
+	}
 
-            // Update stanja
-            bankAccount.updateAmount(dto.fromCurrency, fromBalance.subtract(dto.amount));
-            //bankProxy.updateWallet(dto.email, bankAccount);
-            bankProxy.updateWallet(
-                    dto.email,
-                    bankAccount,
-                    "USER",
-                    dto.email
-            );
-
-
-            wallet.updateAmount(dto.toCurrency, wallet.getAmount(dto.toCurrency).add(convertedAmount));
-            //walletProxy.updateWallet(dto.email, wallet);
-            walletProxy.updateWallet(
-                    dto.email,
-                    wallet,
-                    "USER",
-                    dto.email
-            );
-
-
-        } else if (!fromIsFiat && toIsFiat) {
-            // Crypto -> Fiat
-            BigDecimal fromBalance = wallet.getAmount(dto.fromCurrency);
-            if (fromBalance.compareTo(dto.amount) < 0) throw new RuntimeException("Insufficient crypto funds");
-
-            // Intermediate valuta: USD ili EUR
-            String intermediate = (dto.toCurrency.equals("USD") || dto.toCurrency.equals("EUR")) ? dto.toCurrency : "USD";
-
-            BigDecimal cryptoRate = exchangeProxy.getRate(dto.fromCurrency, intermediate);
-            BigDecimal intermediateAmount = dto.amount.multiply(cryptoRate);
-
-            BigDecimal fiatRate = exchangeProxy.getRate(intermediate, dto.toCurrency);
-            convertedAmount = intermediateAmount.multiply(fiatRate);
-
-            // Update stanja
-            wallet.updateAmount(dto.fromCurrency, fromBalance.subtract(dto.amount));
-            //walletProxy.updateWallet(dto.email, wallet);
-            walletProxy.updateWallet(
-                    dto.email,
-                    wallet,
-                    "USER",
-                    dto.email
-            );
-
-
-            bankAccount.updateAmount(dto.toCurrency, bankAccount.getAmount(dto.toCurrency).add(convertedAmount));
-            //bankProxy.updateWallet(dto.email, bankAccount);
-            bankProxy.updateWallet(
-                    dto.email,
-                    bankAccount,
-                    "USER",
-                    dto.email
-            );
-
-
-        } else {
-            throw new RuntimeException("Invalid currency conversion: must be fiat->crypto or crypto->fiat");
-        }
-
-        String message = String.format("Trade executed: %s %s -> %s %s",
-                dto.amount, dto.fromCurrency, convertedAmount, dto.toCurrency);
-
-        Map<String, BigDecimal> walletState = new HashMap<>();
-        walletState.put(dto.toCurrency, wallet.getAmount(dto.toCurrency));
-
-        Map<String, BigDecimal> bankState = new HashMap<>();
-        bankState.put(dto.toCurrency, bankAccount.getAmount(dto.toCurrency));
-
-        return new TradeResultDto(message, walletState, bankState);
-    }
-
-    private boolean isFiat(String currency) {
-        return currency.equalsIgnoreCase("USD") ||
-               currency.equalsIgnoreCase("EUR") ||
-               currency.equalsIgnoreCase("RSD") ||
-               currency.equalsIgnoreCase("CHF") ||
-               currency.equalsIgnoreCase("GBP");
-    }
+	public String getEmailFromAuthHeader(String authorizationHeader) {
+		try {
+			String encodedCredentials = authorizationHeader.replace("Basic ", "");
+			byte[] decodedBytes = Base64.decode(encodedCredentials.getBytes());
+			String decodedCredentials = new String(decodedBytes);
+			String[] credentials = decodedCredentials.split(":");
+			String email = credentials[0];
+			return email;
+		} catch(Exception e) {
+			System.out.println("Error while extracting email " + e.getMessage());
+			return null;
+		}
+	}
 }

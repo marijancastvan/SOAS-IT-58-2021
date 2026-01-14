@@ -6,7 +6,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"until.exceptions", "com.example.currency_conversion"})
+@ComponentScan(basePackages = {"com.example.Util.exceptions", "com.example.currency_conversion"})
 @EnableFeignClients(basePackages = {"api.proxies"})
 public class CurrencyConversionApplication {
 

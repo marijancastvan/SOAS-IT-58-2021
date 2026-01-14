@@ -2,8 +2,10 @@ package com.example.cryptoexchange;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
+@ComponentScan(basePackages = {"com.example.Util.exceptions", "com.example.cryptoexchange", "api.services"})
 public class CryptoExchangeApplication {
 
 	public static void main(String[] args) {

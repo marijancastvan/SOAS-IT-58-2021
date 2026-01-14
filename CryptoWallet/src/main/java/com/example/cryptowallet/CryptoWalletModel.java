@@ -1,41 +1,62 @@
 package com.example.cryptowallet;
 
-import jakarta.persistence.*;
-import java.math.BigDecimal;
-import java.io.Serializable;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "crypto_wallet")
-public class CryptoWalletModel implements Serializable {
+public class CryptoWalletModel {
 
-    @Id
+	@Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long walletId;
+	
+	@OneToMany(mappedBy = "cryptoWallet", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+	private List<CryptoValuesModel> values;
+	
+	@Column(unique = true, nullable = false)
+	private String email;
+	
+	public CryptoWalletModel() {
+		
+	}
+	
+	public CryptoWalletModel(String email) {
+		this.email = email;
+	}
 
-    @Column(nullable = false, unique = true)
-    private String email;
-    
-    private String role;
+	public Long getWalletId() {
+		return walletId;
+	}
 
-    @Column(nullable = false)
-    private BigDecimal btc = BigDecimal.ZERO;
+	public void setWalletId(Long walletId) {
+		this.walletId = walletId;
+	}
 
-    @Column(nullable = false)
-    private BigDecimal eth = BigDecimal.ZERO;
+	public List<CryptoValuesModel> getValues() {
+		return values;
+	}
 
-    @Column(nullable = false)
-    private BigDecimal ada = BigDecimal.ZERO;
+	public void setValues(List<CryptoValuesModel> values) {
+		this.values = values;
+	}
 
-    // getters & setters
-    public Long getId() { return id; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-    public String getRole() { return role; }          
-    public void setRole(String role) { this.role = role; } 
-    public BigDecimal getBtc() { return btc; }
-    public void setBtc(BigDecimal btc) { this.btc = btc; }
-    public BigDecimal getEth() { return eth; }
-    public void setEth(BigDecimal eth) { this.eth = eth; }
-    public BigDecimal getAda() { return ada; }
-    public void setAda(BigDecimal ada) { this.ada = ada; }
+	public String getEmail() {
+		return email;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+	
+	
 }

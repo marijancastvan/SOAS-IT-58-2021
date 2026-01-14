@@ -1,59 +1,71 @@
 package com.example.bankaccount;
 
-import jakarta.persistence.*;
-import java.io.Serializable;
-import java.math.BigDecimal;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "bank_account")
-public class BankAccountModel implements Serializable {
+public class BankAccountModel {
+	
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Long id;
+	
+	
+	@Column(unique = true, nullable = false)
+	private String email;
+	
+	@OneToMany(mappedBy = "bankAccount", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+	private List<FiatBalanceModel> fiatBalances;
+	
+	
+	public BankAccountModel() {
+    	
+    }
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    public BankAccountModel(String email) {
+        this.email = email;
+    }
 
-    // unique email that links to UsersService
-    @Column(nullable = false, unique = true)
-    private String email;
+	public Long getId() {
+		return id;
+	}
 
-    // amounts for fiat currencies (EUR, USD, GBP, CHF, RSD)
-    @Column(nullable = false)
-    private BigDecimal eur = BigDecimal.ZERO;
+	public void setId(Long id) {
+		this.id = id;
+	}
 
-    @Column(nullable = false)
-    private BigDecimal usd = BigDecimal.ZERO;
+	public String getEmail() {
+		return email;
+	}
 
-    @Column(nullable = false)
-    private BigDecimal gbp = BigDecimal.ZERO;
+	public void setEmail(String email) {
+		this.email = email;
+	}
 
-    @Column(nullable = false)
-    private BigDecimal chf = BigDecimal.ZERO;
+	public List<FiatBalanceModel> getFiatBalances() {
+		return fiatBalances;
+	}
 
-    @Column(nullable = false)
-    private BigDecimal rsd = BigDecimal.ZERO;
+	public void setFiatBalances(List<FiatBalanceModel> fiatBalances) {
+		this.fiatBalances = fiatBalances;
+	}
+	
+	public String toString() {
+		return "BankAccount{" +
+                "id=" + id +
+                ", email='" + email + '\'' +
+                ", fiatBalances=" + fiatBalances +
+                '}';
+	}
 
-    // constructors, getters, setters
-    public BankAccountModel() {}
-    public BankAccountModel(String email) { this.email = email; }
-
-    // standard getters / setters below...
-    // (generate via IDE or Lombok)
-    public Long getId() { return id; }
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
-
-    public BigDecimal getEur() { return eur; }
-    public void setEur(BigDecimal eur) { this.eur = eur; }
-
-    public BigDecimal getUsd() { return usd; }
-    public void setUsd(BigDecimal usd) { this.usd = usd; }
-
-    public BigDecimal getGbp() { return gbp; }
-    public void setGbp(BigDecimal gbp) { this.gbp = gbp; }
-
-    public BigDecimal getChf() { return chf; }
-    public void setChf(BigDecimal chf) { this.chf = chf; }
-
-    public BigDecimal getRsd() { return rsd; }
-    public void setRsd(BigDecimal rsd) { this.rsd = rsd; }
 }

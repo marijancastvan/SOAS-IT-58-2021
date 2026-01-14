@@ -6,14 +6,15 @@ import org.springframework.data.jpa.repository.Query;
 
 import jakarta.transaction.Transactional;
 
-public interface UserRepository extends JpaRepository<UserModel,Integer> {
+public interface UserRepository extends JpaRepository<UserModel, Integer> {
 
 	UserModel findByEmail(String email);
 	
-	@Modifying 
+	@Modifying
 	@Transactional
-	@Query("update UserModel u set u.password=?2, u.role=?3 where u.email=?1")
+	@Query("update UserModel u set u.password=?2,"
+			+ " u.role=?3 where u.email = ?1")
 	void updateUser(String email, String password, String role);
 	
-	
+	boolean existsByRole(String role);
 }

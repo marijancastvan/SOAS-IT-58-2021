@@ -9,8 +9,11 @@ public class CurrencyConversionDto {
 	private ConversionResult conversionResult;
 	private boolean feign;
 	
-	public CurrencyConversionDto(CurrencyExchangeDto exchange, BigDecimal quantity) {
+	public CurrencyConversionDto() {
 		
+	}
+	
+	public CurrencyConversionDto(CurrencyExchangeDto exchange, BigDecimal quantity) {	
 		this.exchange = exchange;
 		this.quantity = quantity;
 		CurrencyConversionDto.ConversionResult result = 
@@ -18,9 +21,6 @@ public class CurrencyConversionDto {
 		this.conversionResult = result;
 	}
 
-	public CurrencyConversionDto() {
-		
-	}
 
 	public CurrencyExchangeDto getExchange() {
 		return exchange;
@@ -62,8 +62,7 @@ public class CurrencyConversionDto {
 			
 		}
 
-		public ConversionResult(String to, BigDecimal convertedAmount) {
-			
+		public ConversionResult(String to, BigDecimal convertedAmount) {		
 			this.to = to;
 			this.convertedAmount = convertedAmount;
 		}

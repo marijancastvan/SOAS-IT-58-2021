@@ -1,49 +1,50 @@
 package usersService;
 
-import jakarta.persistence.Entity;
-
 import java.io.Serializable;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.Id;
+import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "user_model")
-public class UserModel implements Serializable{ 
+public class UserModel implements Serializable{
 	
-    private static final long serialVersionUID=1L;
-	
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @SequenceGenerator(name="my_seq", sequenceName="my_seq", allocationSize=1)
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 
+	@Id
+	@GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "my_seq")
+	@SequenceGenerator(name = "my_seq", sequenceName = "my_seq", allocationSize = 1, initialValue = 5)
 	private int id;
 	
-	@Column(nullable = false, unique=true)
+	@Column(nullable = false, unique = true)
 	private String email;
 	
-	@Column(nullable= false)
+	@Column(nullable = false)
 	private String password;
 	
-	
-	@Column(nullable = false, columnDefinition="VARCHAR(10) CHECK(role IN ('OWNER','ADMIN','USER'))")
+	@Column(nullable = false, columnDefinition = "VARCHAR(10) CHECK(role in('ADMIN','USER','OWNER'))")
 	private String role;
+
+	
 	
 	
 	public UserModel() {
-	
+		super();
 	}
+	
 	public UserModel(String email, String password, String role) {
 		super();
-		
 		this.email = email;
 		this.password = password;
 		this.role = role;
 	}
+
 	public UserModel(int id, String email, String password, String role) {
 		super();
 		this.id = id;
@@ -51,12 +52,12 @@ public class UserModel implements Serializable{
 		this.password = password;
 		this.role = role;
 	}
-	
+
 	public int getId() {
 		return id;
 	}
 
-	public void setId(int id) {
+	public void setId(int id) { 
 		this.id = id;
 	}
 

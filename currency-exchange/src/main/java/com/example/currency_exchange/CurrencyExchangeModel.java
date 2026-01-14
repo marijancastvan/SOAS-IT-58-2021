@@ -1,6 +1,5 @@
 package com.example.currency_exchange;
 
-
 import java.io.Serializable;
 import java.math.BigDecimal;
 
@@ -13,57 +12,61 @@ import jakarta.persistence.Table;
 @Table(name = "currency_exchange")
 public class CurrencyExchangeModel implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	@Id
+	private int id;
+	
+	@Column(name = "currency_from")
+	private String from;
+	@Column(name = "currency_to")
+	private String to;
+	private BigDecimal exchangeRate;
 
-    @Id
-    private int id;
+	public CurrencyExchangeModel() {
+	}
 
-    @Column(name = "currency_from")
-    private String from;
+	public CurrencyExchangeModel(int id, String from, String to, BigDecimal exchangeRate) {
+		this.id = id;
+		this.from = from;
+		this.to = to;
+		this.exchangeRate = exchangeRate;
+	}
 
-    @Column(name = "currency_to")
-    private String to;
+	public int getId() {
+		return id;
+	}
 
-    private BigDecimal exchangeRate;
+	public void setId(int id) {
+		this.id = id;
+	}
 
-    public CurrencyExchangeModel() {}
+	public String getFrom() {
+		return from;
+	}
 
-    public CurrencyExchangeModel(int id, String from, String to, BigDecimal exchangeRate) {
-        this.id = id;
-        this.from = from;
-        this.to = to;
-        this.exchangeRate = exchangeRate;
-    }
+	public void setFrom(String from) {
+		this.from = from;
+	}
 
-    public int getId() {
-        return id;
-    }
+	public String getTo() {
+		return to;
+	}
 
-    public void setId(int id) {
-        this.id = id;
-    }
+	public void setTo(String to) {
+		this.to = to;
+	}
 
-    public String getFrom() {
-        return from;
-    }
+	public BigDecimal getExchangeRate() {
+		return exchangeRate;
+	}
 
-    public void setFrom(String from) {
-        this.from = from;
-    }
+	public void setExchangeRate(BigDecimal exchangeRate) {
+		this.exchangeRate = exchangeRate;
+	}
 
-    public String getTo() {
-        return to;
-    }
-
-    public void setTo(String to) {
-        this.to = to;
-    }
-
-    public BigDecimal getExchangeRate() {
-        return exchangeRate;
-    }
-
-    public void setExchangeRate(BigDecimal exchangeRate) {
-        this.exchangeRate = exchangeRate;
-    }
 }

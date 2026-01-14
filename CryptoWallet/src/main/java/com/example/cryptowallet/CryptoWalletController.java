@@ -1,4 +1,4 @@
-package com.example.cryptowallet;
+/*package com.example.cryptowallet;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/wallet")
+@RequestMapping("/crypto-wallets")
 public class CryptoWalletController {
 
     private final CryptoWalletService service;
@@ -20,18 +20,14 @@ public class CryptoWalletController {
 
     // GET all wallets (ADMIN only)
     @GetMapping("/all")
-    public ResponseEntity<List<CryptoWalletDto>> getAll(@RequestHeader("X-User-Role") String userRole) {
-        return ResponseEntity.ok(service.getAll(userRole));
+    public ResponseEntity<List<CryptoWalletDto>> getAll() {
+        return ResponseEntity.ok(service.getAll());
     }
 
     // GET wallet by email
     @GetMapping("/{email}")
-    public ResponseEntity<CryptoWalletDto> getByEmail(
-            @PathVariable String email,
-            @RequestHeader("X-User-Role") String userRole,
-            @RequestHeader("X-Requester-Email") String requesterEmail) {
-
-        return ResponseEntity.ok(service.getByEmail(email, userRole, requesterEmail));
+    public ResponseEntity<CryptoWalletDto> getByEmail(@PathVariable String email) {
+        return ResponseEntity.ok(service.getByEmail(email));
     }
 
     // CREATE wallet (ADMIN or system triggered for new USER)
@@ -40,15 +36,12 @@ public class CryptoWalletController {
         return ResponseEntity.status(201).body(service.createForUser(email));
     }
 
-    // UPDATE wallet
+ // UPDATE wallet
     @PutMapping("/update/{email}")
     public ResponseEntity<CryptoWalletDto> update(
             @PathVariable String email,
-            @RequestBody CryptoWalletDto dto,
-            @RequestHeader("X-User-Role") String userRole,
-            @RequestHeader("X-Requester-Email") String requesterEmail) {
-
-        return ResponseEntity.ok(service.update(email, dto, userRole, requesterEmail));
+            @RequestBody CryptoWalletDto dto) {
+        return ResponseEntity.ok(service.update(email, dto));
     }
 
     // DELETE wallet
@@ -57,7 +50,7 @@ public class CryptoWalletController {
         service.deleteByEmail(email);
         return ResponseEntity.noContent().build();
     }
-
+/*
     // DEPOSIT funds
     @PostMapping("/deposit")
     public ResponseEntity<CryptoWalletDto> deposit(
@@ -80,5 +73,22 @@ public class CryptoWalletController {
             @RequestHeader("X-Requester-Email") String requesterEmail) {
 
         return ResponseEntity.ok(service.withdraw(email, currency, amount, userRole, requesterEmail));
+    }*/
+    // DEPOSIT funds
+    /*@PostMapping("/deposit")
+    public ResponseEntity<CryptoWalletDto> deposit(
+            @RequestParam String email,
+            @RequestParam String currency,
+            @RequestParam BigDecimal amount) {
+        return ResponseEntity.ok(service.deposit(email, currency, amount));
     }
-}
+
+    // WITHDRAW funds
+    @PostMapping("/withdraw")
+    public ResponseEntity<CryptoWalletDto> withdraw(
+            @RequestParam String email,
+            @RequestParam String currency,
+            @RequestParam BigDecimal amount) {
+        return ResponseEntity.ok(service.withdraw(email, currency, amount));
+    }
+}*/

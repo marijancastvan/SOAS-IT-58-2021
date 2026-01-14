@@ -5,14 +5,14 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.7</version>
+		<version>3.2.12</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
 	<artifactId>currency-exchange</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>currency-exchange</name>
-	<description>Demo project for Spring Boot</description>
+	<description>Microservice containing exchange rates</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -31,59 +31,64 @@
 	</properties>
 	
 	<dependencies>
-    <!-- Spring Boot starter za web aplikacije -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
-    </dependency>
+		<dependency>
+			<groupId>com.example</groupId>
+			<artifactId>ServiceLibrary</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+		
+		<dependency>
+    	<groupId>com.example</groupId>
+    		<artifactId>Util</artifactId>
+    		<version>0.0.1-SNAPSHOT</version>
+    	</dependency>
+    	
+    	<!-- Spring Boot starter za JPA (potrebno za jakarta.persistence) -->
+    	<dependency>
+        	<groupId>org.springframework.boot</groupId>
+        	<artifactId>spring-boot-starter-data-jpa</artifactId>
+    	</dependency>
+    	
+   	 	<!-- Spring Boot starter za web aplikacije -->
+    	<dependency>
+        	<groupId>org.springframework.boot</groupId>
+        	<artifactId>spring-boot-starter-web</artifactId>
+    	</dependency>
 
-    <!-- Spring Boot starter za JPA (potrebno za jakarta.persistence) -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-data-jpa</artifactId>
-    </dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+    
+    	<!-- H2 in-memory baza podataka -->
+    	<dependency>
+        	<groupId>com.h2database</groupId>
+        	<artifactId>h2</artifactId>
+        	<scope>runtime</scope>
+    	</dependency>
 
-    <!-- H2 in-memory baza podataka -->
-    <dependency>
-        <groupId>com.h2database</groupId>
-        <artifactId>h2</artifactId>
-        <scope>runtime</scope>
-    </dependency>
-
-	<dependency>
+		<dependency>
 		    <groupId>org.springframework.cloud</groupId>
 		    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
 		    <version>4.3.0</version>
 		</dependency>
 		
-    <!-- Starter za testiranje (nije obavezno, ali korisno) -->
-    <dependency>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-test</artifactId>
-        <scope>test</scope>
-    </dependency>
-    <dependency>
-    	<groupId>com.example</groupId>
-    	<artifactId>Util</artifactId>
-    	<version>0.0.1-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-    	<groupId>com.example</groupId>
-    	<artifactId>ServiceLibrary</artifactId>
-    	<version>0.0.1-SNAPSHOT</version>
-	</dependency>
-	<!-- https://mvnrepository.com/artifact/de.codecentric/chaos-monkey-spring-boot -->
+		<!-- https://mvnrepository.com/artifact/de.codecentric/chaos-monkey-spring-boot -->
 		<dependency>
 		    <groupId>de.codecentric</groupId>
 		    <artifactId>chaos-monkey-spring-boot</artifactId>
 		    <version>3.2.2</version>
 		</dependency>
-		<dependency>
-    		<groupId>org.springframework.boot</groupId>
-    		<artifactId>spring-boot-starter-security</artifactId>
-		</dependency>
+		
+    	<!-- Starter za testiranje (nije obavezno, ali korisno) -->
+    	<dependency>
+        	<groupId>org.springframework.boot</groupId>
+        	<artifactId>spring-boot-starter-test</artifactId>
+        	<scope>test</scope>
+    	</dependency>
 	</dependencies>
-	
 
 	<build>
 		<plugins>

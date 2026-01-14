@@ -6,8 +6,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import api.dtos.UserDto;
 
-@FeignClient(name = "users-service", /*url = "http://localhost:8770"*/ path = "/api")
-public interface UsersServiceProxy {
-    @GetMapping("/users/email")
-    UserDto getUserByEmail(@RequestParam String email);
-}
+@FeignClient("users-service")
+	public interface UsersServiceProxy {
+	
+		@GetMapping("/users/email")
+		UserDto getUserByEmailFeign(@RequestParam(value="email") String email);
+		
+	}
+		
