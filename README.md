@@ -1,77 +1,64 @@
-Kredencijali:
+**Kredencijali:**
 
-OWNER: Email: owner@uns.ac.rs Lozinka: ownerpass
+OWNER: Email: owner@uns.ac.rs Lozinka: ownerPass
 
-ADMIN: Email: admin@uns.ac.rs Lozinka: adminpass
+ADMIN: Email: admin@uns.ac.rs Lozinka: adminPass
 
-USER: Email: user@uns.ac.rs Lozinka: userpass
+USER: Email: user@uns.ac.rs Lozinka: userPass
 
-============================ API Putanje ============================
-1. Users Service
+**============================ API Putanje ============================**
 
-GET svi korisnici GET http://localhost:8770/api/users
+**1. Users Service**
 
-GET korisnik po EMAIL-u GET http://localhost:8770/api/users/email?email=user@uns.ac.rs
+GET all users GET http://localhost:8765/users
 
-Kreiranje novog korisnika POST http://localhost:8770/api/users/newUser
+GET korisnik po EMAIL-u GET http://localhost:8765/users/email?email=user@uns.ac.rs
 
-Kreiranje novog admina POST http://localhost:8770/api/users/newAdmin
+Kreiranje novog admina POST http://localhost:8770/users/newAdmin
 
-Izmena korisnika PUT http://localhost:8770/api/users
+Kreiranje novog korisnika POST http://localhost:8765/users/newUser
 
-Brisanje korisnika po EMAIL-u DELETE http://localhost:8770/api/users?email=admin2@uns.ac.rs
+Izmena korisnika PUT http://localhost:8765/users/6
 
-2. Currency Exchange
+Brisanje korisnika po ID-u DELETE http://localhost:8770/users/5
 
-Pregled kursnog odnosa GET http://localhost:8000/api/currency-exchange?from=USD&to=EUR
+**2. Currency Exchange**
 
-3. Currency Conversion
+Pregled kursnog odnosa GET http://localhost:8765/currency-exchange?from=EUR&to=USD
 
-Konverzija iznosa GET http://localhost:8100/api/currency-conversion?from=eur&to=usd&quantity=100
+**3. Currency Conversion**
 
-4. Bank Account Service
+Konverzija iznosa GET http://localhost:8100/currency-conversion-feign?from=EUR&to=USD&quantity=100
 
-ADMIN vidi sve račune u sistemu GET http://localhost:8200/api/bank-accounts
+**4. Bank Account Service**
 
-ADMIN vidi račun po EMAIL-u GET http://localhost:8200/api/bank-accounts/email?email=user@uns.ac.rs
+ADMIN vidi sve račune u sistemu GET http://localhost:8765/bank-accounts
 
-ADMIN kreiranje novog računa POST http://localhost:8200/api/bank-accounts/createForUser?email=marijan@uns.ac.rs
+ADMIN vidi račun po EMAIL-u GET http://localhost:8765/bank-accounts/user@uns.ac.rs
 
-ADMIN izmena računa PUT http://localhost:8200/api/bank-accounts/email?email=user@uns.ac.rs
+ADMIN kreiranje novog računa POST http://localhost:8765/bank-accounts
 
-5. Crypto Wallet Service
+ADMIN izmena računa PUT http://localhost:8765/bank-accounts/marijan@uns.ac.rs
 
-ADMIN vidi sve kripto novčanike u sistemu GET http://localhost:8300/api/wallet/all
+**5. Crypto Wallet Service**
 
-ADMIN vidi kripto novčanik po EMAIL-u GET http://localhost:8300/api/wallet/all
+ADMIN vidi sve kripto novčanike u sistemu GET http://localhost:8765/crypto-wallets
 
-!!!ADMIN kreiranje novog crypto računa POST http://localhost:8300/api/wallet/create?email=pavle@uns.ac.rs
+ADMIN vidi kripto novčanik po EMAIL-u GET http://localhost:8765/crypto-wallets/marijan@uns.ac.rs
 
-ADMIN izmena crypto računa PUT http://localhost:8300/api/wallet/update/user@uns.ac.rs
+ADMIN kreiranje novog crypto računa POST http://localhost:8765/crypto-wallets
 
-ADMIN WALLET WITHDRAW POST http://localhost:8300/api/wallet/withdraw?email=user@uns.ac.rs&currency=btc&amount=0.01
+ADMIN izmena crypto računa PUT http://localhost:8765/crypto-wallets/user@uns.ac.rs
 
-ADMIN WALLET DEPOSIT POST http://localhost:8300/api/wallet/deposit?email=user@uns.ac.rs&currency=BTC&amount=0.05
+**6. Crypto Exchange**
 
-ADMIN Brisanje wallet po EMAIL-u DELETE http://localhost:8300/api/wallet/marijan@uns.ac.rs
+Pregled crypto kursevi GET http://localhost:8765/crypto-exchange?from=BTC&to=ETH
 
-6. Crypto Exchange
+**7. Crypto Conversion**
 
-Svi crypto kursevi GET http://localhost:8400/api/crypto-exchange
+Konverzija kripto valute GET http://localhost:8500/crypto-conversion-feign?from=BTC&to=ETH&quantity=0.5
 
-PAIR crypto kursa GET http://localhost:8400/api/crypto-exchange/pair?fromCurrency=BTC&toCurrency=ETH
+**8. Trade Service**
 
-ADMIN kreiranje nove crypto exchange POST http://localhost:8400/api/crypto-exchange
-
-ADMIN izmena crypto exchange PUT http://localhost:8400/api/crypto-exchange/7
-
-ADMIN brisanje crypto exchange DELETE http://localhost:8400/api/crypto-exchange/7
-
-7. Crypto Conversion
-
-Konverzija kripto valute POST http://localhost:8500/api/conversion
-
-8. Trade Service
-
-Trgovina fiat ↔ crypto POST http://localhost:8600/api/trade
+Trgovina fiat ↔ crypto GET http://localhost:8600/trade-service?from=BTC&to=EUR&quantity=2
 
