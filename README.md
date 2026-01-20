@@ -14,13 +14,13 @@ GET all users GET http://localhost:8765/users
 
 GET korisnik po EMAIL-u GET http://localhost:8765/users/email?email=user@uns.ac.rs
 
-Kreiranje novog admina POST http://localhost:8770/users/newAdmin
+Kreiranje novog admina POST http://localhost:8765/users/newAdmin
 
 Kreiranje novog korisnika POST http://localhost:8765/users/newUser
 
 Izmena korisnika PUT http://localhost:8765/users/6
 
-Brisanje korisnika po ID-u DELETE http://localhost:8770/users/5
+Brisanje korisnika po ID-u DELETE http://localhost:8765/users/5
 
 **2. Currency Exchange**
 
@@ -28,7 +28,7 @@ Pregled kursnog odnosa GET http://localhost:8765/currency-exchange?from=EUR&to=U
 
 **3. Currency Conversion**
 
-Konverzija iznosa GET http://localhost:8100/currency-conversion-feign?from=EUR&to=USD&quantity=100
+Konverzija iznosa GET http://localhost:8765/currency-conversion-feign?from=EUR&to=USD&quantity=100
 
 **4. Bank Account Service**
 
@@ -56,9 +56,9 @@ Pregled crypto kursevi GET http://localhost:8765/crypto-exchange?from=BTC&to=ETH
 
 **7. Crypto Conversion**
 
-Konverzija kripto valute GET http://localhost:8500/crypto-conversion-feign?from=BTC&to=ETH&quantity=0.5
+Konverzija kripto valute GET http://localhost:8765/crypto-conversion-feign?from=BTC&to=ETH&quantity=0.5
 
 **8. Trade Service**
 
-Trgovina fiat ↔ crypto GET http://localhost:8600/trade-service?from=BTC&to=EUR&quantity=2
+Trgovina fiat ↔ crypto GET http://localhost:8765/trade-service?from=BTC&to=EUR&quantity=2
 
