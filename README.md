@@ -6,6 +6,9 @@ ADMIN: Email: admin@uns.ac.rs Lozinka: adminPass
 
 USER: Email: user@uns.ac.rs Lozinka: userPass
 
+**Docker link:**
+https://hub.docker.com/repositories/marijancastvan
+
 **============================ API Putanje ============================**
 
 **1. Users Service**
